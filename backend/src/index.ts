@@ -1,6 +1,8 @@
 import dotenv from 'dotenv';
-dotenv.config();
-
+dotenv.config({
+    path: './.env'
+});
+console.log(process.env.DB_USER)
 
 import express from "express";
 

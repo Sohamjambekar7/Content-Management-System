@@ -2,6 +2,8 @@ import { Table, Column, Model, DataType, HasMany } from 'sequelize-typescript';
 import { Post } from './Post.js';
 import { Comment } from './Comment.js';
 import { Token } from './Token.js';
+import { Category } from './Category.js';
+import { Tag } from './Tag.js';
 
 @Table({
   tableName: 'Users',
@@ -43,5 +45,11 @@ export class User extends Model {
 
   @HasMany(()=>Token)
   tokens: Token[]=[]
+
+  @HasMany(()=>Category)
+  categories: Category[]=[]
+
+  @HasMany(()=>Tag)
+  tags: Tag[]=[]
 
 }

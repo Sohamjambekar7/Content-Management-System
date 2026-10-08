@@ -1,4 +1,5 @@
-import { Table, Column, Model, DataType } from 'sequelize-typescript';
+import { Table, Column, Model, DataType, ForeignKey, BelongsTo } from 'sequelize-typescript';
+import { User } from './User.js';
 
 @Table({
   tableName: 'Categories',
@@ -18,6 +19,24 @@ export class Category extends Model {
     allowNull: false
   })
   declare name: string;
+
+  @Column({
+    type: DataType.STRING,
+    allowNull: false,
+    unique: true
+  })
+  declare slug: string;
+
+  @ForeignKey(()=>User)
+  @Column({
+    type: DataType.INTEGER,
+    allowNull: false
+  })
+  userId?: number;
+
+  @BelongsTo(()=>User)
+  user?: User;
+
 
   // Add any other columns the same way
 }

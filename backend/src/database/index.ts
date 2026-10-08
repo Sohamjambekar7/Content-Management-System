@@ -6,8 +6,8 @@ import '../models/User.js';
 import '../models/Post.js';
 import '../models/Category.js';
 
-// Sync the database (creates/updates tables)
-connection.sync({ alter: true })
+// Sync the database safely without causing concurrent table deadlocks
+connection.sync()
   .then(() => {
     console.log('✅ Database synced successfully');
   })
