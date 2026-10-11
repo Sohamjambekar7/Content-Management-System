@@ -5,8 +5,8 @@ import { Post } from "./Post";
 
 @Table
 export class Category extends Model<Category>{
-
-
+    static findOne: any;
+    static findByPk: any;
     @Column({
         allowNull: false
     })

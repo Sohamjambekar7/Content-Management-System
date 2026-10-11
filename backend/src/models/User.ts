@@ -40,7 +40,7 @@ export class User extends Model<User> {
   @HasMany(() => Token)
   tokens: Token[] = [];
 
-  @HasMany(() => Category)
+  @HasMany(() => Category as any)
   categories: Category[] = [];
 
   @HasMany(() => Tag)

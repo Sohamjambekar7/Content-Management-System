@@ -36,7 +36,7 @@ export class Post extends Model<Post>{
     })
     userId?: number;
 
-    @ForeignKey(()=>Category)
+    @ForeignKey(()=>Category as any)
     @Column({
         allowNull: false
     })
@@ -45,7 +45,7 @@ export class Post extends Model<Post>{
     @BelongsTo(()=>User)
     user?: User;
 
-    @BelongsTo(()=>Category)
+    @BelongsTo(()=>Category as any)
     category?: Category;
 
     @HasMany(()=>Comment)
