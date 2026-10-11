@@ -1,0 +1,12 @@
+<mat-drawer-container class="h-screen mat-typography" autosize >
+    <app-header (toggleBtnClicked)="drawer.toggle()"></app-header>
+
+    <mat-drawer #drawer class="example-sidenav" mode="side" [opened]="true">
+        <app-sidebar></app-sidebar>
+    </mat-drawer>
+
+    <div class="grow">
+        <router-outlet></router-outlet>
+    </div>
+    <app-footer></app-footer>
+</mat-drawer-container>

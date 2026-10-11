@@ -1,11 +1,22 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { errorInterceptor } from './core/interceptors/error.interceptor';
+import { HashLocationStrategy, LocationStrategy } from '@angular/common';
 
 export const appConfig: ApplicationConfig = {
-  providers: [
-    provideBrowserGlobalErrorListeners(),
-    provideRouter(routes)
-  ]
+  providers: [provideZoneChangeDetection({ eventCoalescing: true }), provideRouter(routes), provideHttpClient(
+    withInterceptors([
+      authInterceptor,
+      errorInterceptor
+    ])
+  ), provideAnimationsAsync(),
+{
+  provide: LocationStrategy, useClass: HashLocationStrategy
+}
+]
 };

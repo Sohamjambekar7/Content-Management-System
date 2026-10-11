@@ -1,55 +1,48 @@
-import { Table, Column, Model, DataType, HasMany } from 'sequelize-typescript';
-import { Post } from './Post.js';
-import { Comment } from './Comment.js';
-import { Token } from './Token.js';
-import { Category } from './Category.js';
-import { Tag } from './Tag.js';
+import { Column, DataType, Default, HasMany, Model, Table } from "sequelize-typescript";
+import { Post } from "./Post";
+import { Comment } from "./Comment";
+import { Token } from "./Token";
+import { Category } from "./Category";
+import { Tag } from "./Tag";
 
-@Table({
-  tableName: 'Users',
-  timestamps: true
-})
-export class User extends Model {
-
+@Table
+export class User extends Model<User> {
   @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
+    allowNull: false,
   })
-  declare id: number;
+  name?: string;
 
   @Column({
-    type: DataType.STRING,
-    allowNull: false
-  })
-  declare name: string;
-
-  @Column({
-    type: DataType.STRING,
     unique: true,
-    allowNull: false
+    allowNull: false,
   })
-  declare email: string;
+  email?: string;
+
+
+  @Default('pending')
+  @Column({
+    allowNull: false,
+    type: DataType.ENUM('active', 'pending')
+  })
+  status?: string;
 
   @Column({
-    type: DataType.STRING,
-    allowNull: false
+    allowNull: false,
   })
-  declare password: string;
+  password?: string;
 
   @HasMany(() => Post)
-  posts!: Post[];
+  posts: Post[] = [];
 
-  @HasMany(()=>Comment)
-  comments: Comment[]=[]
+  @HasMany(() => Comment)
+  comments: Comment[] = [];
 
-  @HasMany(()=>Token)
-  tokens: Token[]=[]
+  @HasMany(() => Token)
+  tokens: Token[] = [];
 
-  @HasMany(()=>Category)
-  categories: Category[]=[]
+  @HasMany(() => Category)
+  categories: Category[] = [];
 
-  @HasMany(()=>Tag)
-  tags: Tag[]=[]
-
+  @HasMany(() => Tag)
+  tags: Tag[] = [];
 }

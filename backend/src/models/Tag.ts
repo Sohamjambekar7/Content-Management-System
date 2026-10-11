@@ -1,30 +1,37 @@
-import { BelongsTo, BelongsToMany, ForeignKey } from "sequelize-typescript";
-import { Column, Model, Table, DataType } from "sequelize-typescript";
-import { Post } from './Post.js';
-import { PostTag } from './PostTag.js';
-import { User } from "./User.js";
+import { BelongsTo, BelongsToMany, Column, ForeignKey, Model, Table } from "sequelize-typescript";
+import { Post } from "./Post";
+import { PostTag } from "./PostTag";
+import { User } from "./User";
+
 
 @Table
 export class Tag extends Model<Tag>{
 
 
     @Column({
-    type: DataType.STRING,
-    allowNull: true,
+        allowNull: false
     })
     name?: string;
 
+    @Column({
+        allowNull: false,
+        unique: true
+    })
+    slug?: string
+     
 
     @ForeignKey(()=>User)
     @Column({
-        type: DataType.INTEGER,
         allowNull: false
     })
     userId?: number;
 
+
     @BelongsToMany(()=>Post, ()=>PostTag)
-    posts: Post[]=[]
+    posts: Post[] = [] 
 
     @BelongsTo(()=>User)
     user?: User;
+
+
 }

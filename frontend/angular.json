@@ -1,9 +1,6 @@
 {
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
-  "cli": {
-    "packageManager": "npm"
-  },
   "newProjectRoot": "projects",
   "projects": {
     "frontend": {
@@ -18,9 +15,14 @@
       "prefix": "app",
       "architect": {
         "build": {
-          "builder": "@angular/build:application",
+          "builder": "@angular-devkit/build-angular:application",
           "options": {
+            "outputPath": "dist/frontend",
+            "index": "src/index.html",
             "browser": "src/main.ts",
+            "polyfills": [
+              "zone.js"
+            ],
             "tsConfig": "tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": [
@@ -30,9 +32,10 @@
               }
             ],
             "styles": [
-              "src/tailwind.css",
+              "@angular/material/prebuilt-themes/deeppurple-amber.css",
               "src/styles.scss"
-            ]
+            ],
+            "scripts": []
           },
           "configurations": {
             "production": {
@@ -44,8 +47,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "4kB",
-                  "maximumError": "8kB"
+                  "maximumWarning": "2kB",
+                  "maximumError": "400kB"
                 }
               ],
               "outputHashing": "all"
@@ -53,13 +56,19 @@
             "development": {
               "optimization": false,
               "extractLicenses": false,
-              "sourceMap": true
+              "sourceMap": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.development.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"
         },
         "serve": {
-          "builder": "@angular/build:dev-server",
+          "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
               "buildTarget": "frontend:build:production"
@@ -70,10 +79,35 @@
           },
           "defaultConfiguration": "development"
         },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n"
+        },
         "test": {
-          "builder": "@angular/build:unit-test"
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "polyfills": [
+              "zone.js",
+              "zone.js/testing"
+            ],
+            "tsConfig": "tsconfig.spec.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ],
+            "styles": [
+              "@angular/material/prebuilt-themes/azure-blue.css",
+              "src/styles.scss"
+            ],
+            "scripts": []
+          }
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "efc3ab27-cadb-4600-8995-212d125d431d"
   }
 }

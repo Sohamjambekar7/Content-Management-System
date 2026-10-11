@@ -1,30 +1,33 @@
-import { BelongsTo, Column, DataType, ForeignKey, Model, Table } from "sequelize-typescript";
-import { User } from "./User.js";
+import { Table, Model, Column, ForeignKey, BelongsTo, DataType } from "sequelize-typescript";
+import { User } from "./User";
+import { type } from "os";
+
 
 @Table
-export class Token extends Model<Token> {
+export class Token extends Model<Token>{
 
     @Column({
-        type: DataType.STRING,
-        allowNull: false,
-    })
-    token!: string;
-
-    @Column({
-        type: DataType.ENUM('activation', 'reset'),
         allowNull: false
     })
-    type?: 'activation' | 'reset';
+    token?: string;
 
-    @ForeignKey(() => User)
+
     @Column({
-        type: DataType.INTEGER, // <-- Add this explicit type definition here
-        allowNull: true,       // Match your optional type (userId?: number)
+        type: DataType.ENUM('activation', 'reset', 'access', 'refresh'),
+        allowNull: false
+    })
+    type?: 'activation' | 'reset' | 'access' | 'refresh';
+
+
+    @ForeignKey(()=>User)
+    @Column({
+        allowNull: false
     })
     userId?: number;
+    
 
-    @BelongsTo(() => User)
+    @BelongsTo(()=>User)
     user?: User;
 
-
+    
 }

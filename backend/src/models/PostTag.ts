@@ -1,28 +1,28 @@
-import { Column, ForeignKey, Model, Table, DataType } from "sequelize-typescript";
-import { Tag } from "./Tag.js";
-import { Post } from "./Post.js";
+import { BelongsTo, Column, ForeignKey, Model, Table } from "sequelize-typescript";
+import { Post } from "./Post";
+import { Tag } from "./Tag";
 
 
 @Table
-export class PostTag extends Model<PostTag>{
-
+export class PostTag  extends Model<PostTag>{
+    
     @ForeignKey(()=>Post)
-    @Column({
-        type: DataType.INTEGER, // <-- Explicitly define the type here
-        allowNull: false,
-    })
-    PostId?: number;
+    @Column({ 
+            allowNull: false
+        })
+    postId?: number 
 
     @ForeignKey(()=>Tag)
     @Column({
-        type: DataType.INTEGER, // <-- Do the same for TagId if it throws a similar error
-        allowNull: false,
+        allowNull: false
     })
-    tagId?: number;
+    tagId?: number
 
+    // add associations
+    @BelongsTo(()=>Post)
+    post?: Post
 
-
-
-
-
+    @BelongsTo(()=>Tag)
+    tag?: Tag
+    
 }

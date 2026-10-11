@@ -1,1 +1,25 @@
-@import "tailwindcss";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+// primary color
+
+
+:root{
+    --primary: #0069ff;
+}
+
+
+h1{
+    @apply text-6xl font-bold text-center mb-5 leading-snug
+}
+
+p{
+    @apply text-xl mb-5 leading-loose whitespace-pre-line
+}
+
+.cta{
+    @apply bg-[var(--primary)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary)] transition-all duration-200;
+}
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }

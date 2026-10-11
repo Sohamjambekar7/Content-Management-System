@@ -1,59 +1,59 @@
-import { Table, Column, Model, DataType, ForeignKey, BelongsTo, HasMany, BelongsToMany } from 'sequelize-typescript';
-import { User } from './User.js';
-import { Comment } from './Comment.js';
-import { PostTag } from './PostTag.js';
-import { Tag } from './Tag.js';
+import { AutoIncrement, BelongsTo, BelongsToMany, Column, ForeignKey, HasMany, Model, PrimaryKey, Table } from "sequelize-typescript";
+import { User } from "./User";
+import { Comment } from "./Comment";
+import { Tag } from "./Tag";
+import { PostTag } from "./PostTag";
+import { Category } from "./Category";
 
-@Table({
-  tableName: 'Posts',
-  timestamps: true
-})
-export class Post extends Model {
 
-  @Column({
-    type: DataType.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
-  })
-  declare id: number;
+@Table
+export class Post extends Model<Post>{
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: false
-  })
-  declare title: string;
 
-  @Column({
-    type: DataType.TEXT,
-    allowNull: true
-  })
-  declare content: string;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: true
-  })
-  declare customId: string;
+    @Column({
+        allowNull: false
+    })
+    title?: string;
 
-  @Column({
-    type: DataType.STRING,
-    allowNull: true
-  })
-  declare slug: string;
 
-  @ForeignKey(() => User)
-  @Column({
-    type: DataType.INTEGER,     // ← This was missing
-    allowNull: false
-  })
-  declare userId: number;
+    @Column({
+        allowNull: false,
+        type: 'TEXT'
+    })
+    content?: string;
 
-  @BelongsTo(() => User)
-  declare user: User;
+    @Column({
+        allowNull: false,
+        unique: true
+    })
+    slug?: string;
 
-  @HasMany(()=>Comment)
-  comments: Comment[]=[]
 
-  @BelongsToMany(()=>Tag,()=>PostTag)
-  tags: Tag[]=[]
+    @ForeignKey(()=>User)
+    @Column({
+        allowNull: false
+    })
+    userId?: number;
+
+    @ForeignKey(()=>Category)
+    @Column({
+        allowNull: false
+    })
+    categoryId?: number;
+
+    @BelongsTo(()=>User)
+    user?: User;
+
+    @BelongsTo(()=>Category)
+    category?: Category;
+
+    @HasMany(()=>Comment)
+    comments: Comment[] = []
+
+    @BelongsToMany(()=>Tag, ()=>PostTag)
+    tags: Tag[] = []
 }
+
+
+

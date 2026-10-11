@@ -1,33 +1,34 @@
-import { AllowNull, Column, ForeignKey, Model, Table, BelongsTo, DataType } from "sequelize-typescript";
-import { User } from "./User.js";
-import { Post } from "./Post.js";
+import { BelongsTo, Column, ForeignKey, Model, Table } from "sequelize-typescript";
+import { User } from "./User";
+import { Post } from "./Post";
+
 
 @Table
-export class Comment extends Model<Comment> {
+export class Comment extends Model<Comment>{
+
 
     @Column({
-        type: DataType.STRING, // Explicitly define the type here
         allowNull: false
     })
-    content!: string; // Removed the '= '' initializer
+    content?: string
 
-    @ForeignKey(() => User)
+
+    @ForeignKey(()=>User)
     @Column({
-        type: DataType.INTEGER, // Best practice to explicitly define foreign key types too
         allowNull: false
     })
-    userId?: number;
+    userId?: number
 
-    @ForeignKey(() => Post)
+    @ForeignKey(()=>Post)
     @Column({
-        type: DataType.INTEGER,
         allowNull: false
     })
-    postId?: number;
+    postId?: number
 
-    @BelongsTo(() => Post)
+    @BelongsTo(()=>Post)
     post?: Post;
 
-    @BelongsTo(() => User)
+
+    @BelongsTo(()=>User)
     user?: User;
 }
