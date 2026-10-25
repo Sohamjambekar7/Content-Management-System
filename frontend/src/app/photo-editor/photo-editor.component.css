@@ -1,0 +1,76 @@
+
+:host {
+  display: block;
+  color: #1f2937;
+}
+
+.editor-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  font-family: Arial, sans-serif;
+}
+
+.editor-page h2 {
+  margin: 0 0 8px;
+  font-size: 26px;
+}
+
+.editor-page p {
+  line-height: 1.5;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.toolbar button,
+.file-button {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.toolbar button:hover,
+.file-button:hover {
+  background: #f3f4f6;
+}
+
+.toolbar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.file-button input {
+  display: none;
+}
+
+.status {
+  min-height: 24px;
+  color: #374151;
+}
+
+.canvas-container {
+  overflow: auto;
+  padding: 12px;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+}
+
+.canvas-container canvas {
+  display: block;
+  max-width: 100%;
+}
+
+.hint {
+  color: #6b7280;
+  font-size: 13px;
+}

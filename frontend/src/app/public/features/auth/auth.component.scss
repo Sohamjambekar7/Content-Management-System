@@ -1,0 +1,17 @@
+::ng-deep .card {
+  display: block;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 1.25rem;
+  background: white;
+  padding: clamp(1.25rem, 5vw, 2rem);
+  box-shadow: 0 20px 60px rgb(15 23 42 / 7%);
+}
+::ng-deep .card a { color: #4f46e5; font-weight: 650; }
+::ng-deep .card label { display: block; margin: 1rem 0 .45rem; color: #334155; font-size: .875rem; font-weight: 650; }
+::ng-deep .card input { width: 100%; min-height: 2.8rem; border: 1px solid #cbd5e1; border-radius: .7rem; background: #fff; padding: .7rem .85rem; color: #0f172a; transition: border-color .15s, box-shadow .15s; }
+::ng-deep .card input:focus { border-color: #6366f1; outline: none; box-shadow: 0 0 0 3px rgb(99 102 241 / 15%); }
+::ng-deep .card input.ng-invalid.ng-touched { border-color: #ef4444; }
+::ng-deep .card button[type="submit"] { min-height: 2.8rem; border-radius: .7rem; background: #4f46e5; padding: .7rem 1.2rem; color: #fff; font-weight: 700; transition: background .15s; }
+::ng-deep .card button[type="submit"]:hover:not(:disabled) { background: #3730a3; }
+::ng-deep .card button[type="submit"]:disabled { cursor: not-allowed; background: #cbd5e1; }

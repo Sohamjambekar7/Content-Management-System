@@ -1,0 +1,72 @@
+<main class="editor-shell">
+  <header class="editor-header">
+    <a class="back-link" routerLink="/">← ContentDesk</a>
+    <div><p class="eyebrow">CREATIVE STUDIO</p><h1>AI Photo &amp; Video Editor</h1><p class="subheading">Edit locally. Export in seconds. Your media stays on your device.</p></div>
+    <span class="privacy-pill">● Local-first editing</span>
+  </header>
+
+  <section class="model-banner" aria-live="polite">
+    <div class="model-icon">✦</div><div class="model-copy"><strong>AI model status</strong><p>{{ modelStatus }}</p>
+      <div class="progress-track" *ngIf="modelLoading"><span [style.width.%]="modelProgress"></span></div>
+    </div><span class="loading-label" *ngIf="modelLoading">Loading {{ modelProgress }}%</span>
+  </section>
+
+  <nav class="editor-tabs" aria-label="Editor type">
+    <button type="button" [class.active]="tab==='photo'" (click)="tab='photo'">▧ Photo editor</button>
+    <button type="button" [class.active]="tab==='video'" (click)="tab='video'">▷ Video &amp; social</button>
+  </nav>
+
+  <section class="workspace" *ngIf="tab==='photo'">
+    <aside class="tool-panel">
+      <p class="eyebrow">PHOTO WORKSPACE</p><h2>Make it stand out</h2>
+      <label class="upload-button">＋ Upload photo<input type="file" accept="image/*" (change)="loadPhoto($event)"></label>
+      <p class="file-name" *ngIf="photoName">{{photoName}}</p>
+      <button class="primary-button" type="button" [disabled]="!photoName || modelLoading" (click)="removeBackground()">✦ Remove background</button>
+      <p class="hint">First use downloads the model. Subsequent use may use the browser cache.</p>
+      <div class="control-group"><label for="brightness">Brightness <b>{{brightness}}%</b></label><input id="brightness" type="range" min="50" max="160" [(ngModel)]="brightness" (input)="drawPhoto()"></div>
+      <div class="control-group"><label for="contrast">Contrast <b>{{contrast}}%</b></label><input id="contrast" type="range" min="50" max="160" [(ngModel)]="contrast" (input)="drawPhoto()"></div>
+      <div class="control-group"><label for="sharpness">Sharpen <b>{{sharpness}}%</b></label><input id="sharpness" type="range" min="0" max="50" [(ngModel)]="sharpness" (input)="drawPhoto()"></div>
+      <div class="control-group"><label for="crop">Center crop <b>{{crop}}%</b></label><input id="crop" type="range" min="50" max="100" [(ngModel)]="crop" (input)="drawPhoto()"></div>
+      <div class="button-row"><button type="button" class="secondary-button" (click)="exportPhoto('image/png')" [disabled]="!photoName">Export PNG</button><button type="button" class="secondary-button" (click)="exportPhoto('image/jpeg')" [disabled]="!photoName">Export JPG</button></div>
+      <p class="error" *ngIf="photoError">{{photoError}}</p>
+    </aside>
+    <div class="preview-panel"><div class="preview-top"><span>LIVE PREVIEW</span><span>Canvas output</span></div>
+      <div class="canvas-wrap"><canvas #photoCanvas></canvas><div class="empty-state" *ngIf="!photoName"><span>▧</span><strong>Your canvas is ready</strong><p>Upload an image to start editing</p></div></div>
+      <p class="preview-note">Adjustments are rendered in your browser. Export uses the current canvas.</p>
+    </div>
+  </section>
+
+  <section class="workspace video-workspace" *ngIf="tab==='video'">
+    <aside class="tool-panel">
+      <p class="eyebrow">VIDEO WORKSPACE</p><h2>Ready for vertical</h2>
+      <label class="upload-button">＋ Upload MP4 / WebM<input type="file" accept="video/mp4,video/webm" (change)="loadVideo($event)"></label>
+      <p class="file-name" *ngIf="videoFile">{{videoFile.name}}</p>
+      <div class="control-group"><label>Aspect ratio</label><div class="button-row"><button class="secondary-button" [class.selected]="videoRatio==='9:16'" (click)="setRatio('9:16')">9:16 Reels / Shorts</button><button class="secondary-button" [class.selected]="videoRatio==='16:9'" (click)="setRatio('16:9')">16:9 Standard</button></div></div>
+      <div class="control-group"><label for="trim-start">Start <b>{{videoStart | number:'1.1-1'}}s</b></label><input id="trim-start" type="range" min="0" [max]="videoDuration || 1" step="0.1" [(ngModel)]="videoStart"></div>
+      <div class="control-group"><label for="trim-end">End <b>{{videoEnd | number:'1.1-1'}}s</b></label><input id="trim-end" type="range" min="0" [max]="videoDuration || 1" step="0.1" [(ngModel)]="videoEnd"></div>
+      <p class="hint">Export renders the selected trim through the browser canvas and records WebM. This is not a cloud render.</p>
+      <button class="primary-button" [disabled]="!videoFile || videoBusy" (click)="exportVideo()">{{videoBusy?'Rendering video…':'Export edited video (WebM)'}}</button>
+      <button class="secondary-button full-width" [disabled]="!videoFile" (click)="showShareModal=true">Prepare social post</button>
+      <button class="secondary-button full-width" [disabled]="!videoFile" (click)="shareVideo()">Share / download for social</button>
+      <p class="error" *ngIf="videoError">{{videoError}}</p><p class="success" *ngIf="shareMessage">{{shareMessage}}</p>
+    </aside>
+    <div class="preview-panel"><div class="preview-top"><span>VIDEO PREVIEW</span><span>{{videoDuration | number:'1.0-1'}} sec</span></div>
+      <div class="canvas-wrap video-canvas-wrap"><canvas #videoCanvas></canvas><div class="empty-state" *ngIf="!videoFile"><span>▷</span><strong>Bring your clip to life</strong><p>Upload MP4 or WebM to preview</p></div></div>
+      <video *ngIf="videoUrl" [src]="videoUrl" controls playsinline (loadedmetadata)="onVideoMetadata($any($event.target))" (timeupdate)="drawVideoFrame()" (seeked)="drawVideoFrame()"></video>
+      <p class="preview-note">Direct publishing is controlled by Instagram and YouTube. This tool prepares media and opens native sharing where supported; it does not bypass platform upload or authorization flows.</p>
+    </div>
+  </section>
+
+  <div class="modal-backdrop" *ngIf="showShareModal" (click)="showShareModal=false">
+    <section class="share-modal" role="dialog" aria-modal="true" aria-labelledby="share-title" (click)="$event.stopPropagation()">
+      <button class="modal-close" type="button" aria-label="Close" (click)="showShareModal=false">×</button>
+      <p class="eyebrow">SOCIAL EXPORT</p><h2 id="share-title">Prepare your post</h2>
+      <p class="hint">Create platform-ready metadata and download your clip. Instagram / YouTube require you to confirm publishing in their own apps.</p>
+      <label>Video title<input [(ngModel)]="title" maxlength="100" placeholder="Give your video a title"></label>
+      <label>Description<textarea [(ngModel)]="description" rows="3" maxlength="5000" placeholder="Tell viewers what this is about"></textarea></label>
+      <label>Tags<input [(ngModel)]="tags" placeholder="#shorts, #reels, #creator"></label>
+      <label>Category<select [(ngModel)]="category"><option>Entertainment</option><option>Education</option><option>How-to &amp; Style</option><option>People &amp; Blogs</option><option>Travel &amp; Events</option><option>Film &amp; Animation</option></select></label>
+      <div class="modal-actions"><button class="secondary-button" (click)="showShareModal=false">Cancel</button><button class="primary-button" (click)="downloadSocialVideo()">Download social export</button></div>
+    </section>
+  </div>
+</main>
