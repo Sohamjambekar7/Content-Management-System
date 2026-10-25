@@ -1,0 +1,11 @@
+<mat-toolbar class="!h-16 !bg-white !text-slate-800 !border-b !border-slate-200 !shadow-sm flex justify-between">
+  <div class="flex items-center gap-3">
+    <button mat-icon-button aria-label="Toggle navigation" (click)="toggleBtnClicked.emit()"><mat-icon>menu</mat-icon></button>
+    <span class="text-lg font-extrabold tracking-tight">Content<span class="text-indigo-600">Desk</span></span>
+    <span class="hidden sm:inline text-xs font-semibold uppercase tracking-widest text-slate-400 ml-2">CMS workspace</span>
+  </div>
+  <div class="flex items-center gap-2">
+    <span class="hidden md:inline text-sm text-slate-500">{{authService.session?.user?.name}}</span>
+    <button mat-icon-button aria-label="Sign out" title="Sign out" (click)="authService.logout()"><mat-icon>logout</mat-icon></button>
+  </div>
+</mat-toolbar>

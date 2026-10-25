@@ -1,0 +1,27 @@
+<form (ngSubmit)="submit()" class="card" [formGroup]="form">
+    <h1 class="!mb-2 !text-left !text-2xl">Welcome back</h1>
+    <p class="!mb-5 !text-sm !text-slate-500">Sign in to manage your content workspace.</p>
+    @if (successMessage) { <div role="status" class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{{successMessage}}</div> }
+    @if (errorMessage) { <div role="alert" class="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{errorMessage}}</div> }
+    <div>
+        <label for="email">Email</label>
+        <input formControlName="email" type="email" id="email" name="email" placeholder="Email">
+    </div>
+
+    <div>
+        <label for="password">Password</label>
+        <input formControlName="password" type="password" id="password" name="password" placeholder="Password">
+    </div>
+
+    <div class="flex justify-end mt-5">
+        <button [disabled]="!form.valid || isSubmitting" type="submit">{{isSubmitting ? 'Signing in…' : 'Sign in'}}</button>
+
+    </div>
+
+    <div class="text-center mt-4 text-gray-600">Don't have an account? <a routerLink="/auth/register">Register</a></div>
+
+    <div class="text-center mt-4 text-gray-600">Forgot your password? <a routerLink="/auth/forgot-password">Reset</a>
+    </div>
+
+
+</form>

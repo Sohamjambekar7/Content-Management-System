@@ -1,0 +1,12 @@
+<div class="min-h-screen flex flex-col bg-slate-50">
+  <app-header (toggleBtnClicked)="drawer.toggle()"></app-header>
+  <mat-drawer-container class="flex-1 !bg-transparent" autosize>
+    <mat-drawer #drawer class="!w-64 !border-r !border-slate-200 !bg-white" mode="side" [opened]="true">
+      <app-sidebar></app-sidebar>
+    </mat-drawer>
+    <main class="min-w-0 px-4 py-6 md:px-8 md:py-8">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-drawer-container>
+  <app-footer></app-footer>
+</div>

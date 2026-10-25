@@ -1,0 +1,54 @@
+<div class="editor-page">
+  <h2>Photo Editor</h2>
+  <p>Upload a photo, apply an AI background effect, then add text or shapes.</p>
+
+  <div class="toolbar">
+    <label class="file-button">
+      Upload photo
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        (change)="onFileSelected($event)"
+      />
+    </label>
+
+    <button (click)="applyBackgroundBlur()" [disabled]="!originalImage || busy">
+      {{ busy ? 'Processing…' : 'AI background blur' }}
+    </button>
+
+    <button (click)="restoreOriginal()" [disabled]="!originalImage">
+      Restore original
+    </button>
+
+    <button (click)="addText()" [disabled]="!canvas">
+      Add text
+    </button>
+
+    <button (click)="addRectangle()" [disabled]="!canvas">
+      Add shape
+    </button>
+
+    <button (click)="deleteSelected()" [disabled]="!canvas">
+      Delete selected
+    </button>
+
+    <button (click)="rotateSelected()" [disabled]="!canvas">
+      Rotate selected
+    </button>
+
+    <button (click)="downloadImage()" [disabled]="!canvas">
+      Download PNG
+    </button>
+  </div>
+
+  <p class="status" role="status">{{ status }}</p>
+
+  <div class="canvas-container">
+    <canvas #editorCanvas></canvas>
+  </div>
+
+  <p class="hint">
+    Tip: click text or a shape to select it. Drag to move it and use the
+    corner handles to resize it.
+  </p>
+</div>
