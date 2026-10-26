@@ -4,7 +4,10 @@
   "compileOnSave": false,
   "compilerOptions": {
     "outDir": "./dist/out-tsc",
+<<<<<<< HEAD
     "rootDir": "./src",
+=======
+>>>>>>> b81d3aa8a92a0385597fdca72d5caa61bcf19784
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
