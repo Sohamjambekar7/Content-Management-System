@@ -1,22 +1,14 @@
+
 {
   "name": "frontend",
   "version": "0.0.0",
   "scripts": {
-<<<<<<< HEAD
-  "ng": "ng",
-  "start": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng serve",
-  "dev": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng serve --host 127.0.0.1 --port 4200",
-  "build": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng build",
-  "watch": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng build --watch --configuration development",
-  "test": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng test"
-=======
     "ng": "ng",
-    "start": "cross-env NODE_OPTIONS=--max-old-space-size=4096 ng serve",
-    "dev": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
->>>>>>> b81d3aa8a92a0385597fdca72d5caa61bcf19784
+    "start": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng serve",
+    "dev": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng serve --host 127.0.0.1 --port 4200",
+    "build": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng build",
+    "watch": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng build --watch --configuration development",
+    "test": "node --max-old-space-size=4096 node_modules/@angular/cli/bin/ng test"
   },
   "private": true,
   "dependencies": {
@@ -31,11 +23,8 @@
     "@angular/platform-browser-dynamic": "^18.0.0",
     "@angular/router": "^18.0.0",
     "@huggingface/transformers": "^3.7.2",
-<<<<<<< HEAD
-=======
     "@mediapipe/tasks-vision": "^1.1.1",
     "fabric": "^7.4.0",
->>>>>>> b81d3aa8a92a0385597fdca72d5caa61bcf19784
     "moment": "^2.30.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",

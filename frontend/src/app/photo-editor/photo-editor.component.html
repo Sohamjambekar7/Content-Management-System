@@ -1,5 +1,4 @@
 
-<<<<<<< HEAD
 <div class="studio-page">
   <header class="studio-header">
     <div class="brand">
@@ -11,13 +10,10 @@
     </div>
 
     <div class="header-actions">
-      <button class="btn btn-secondary" type="button"
-              routerLink="/admin/posts">
+      <button class="btn btn-secondary" type="button" routerLink="/admin/posts">
         ← Go to Posts
       </button>
-
-      <button class="btn btn-primary" type="button"
-              routerLink="/admin/posts">
+      <button class="btn btn-primary" type="button" routerLink="/admin/posts">
         Create / Manage Post ↗
       </button>
     </div>
@@ -30,92 +26,58 @@
         <h2>Make your content stand out.</h2>
         <p>Upload a photo, apply effects, and prepare your next post.</p>
       </div>
-
       <div class="studio-chip">● Studio ready</div>
     </section>
 
     <section class="editor-layout">
       <aside class="tools-panel">
         <h3>Editing tools</h3>
-        <p class="panel-description">
-          Choose an action to get started.
-        </p>
+        <p class="panel-description">Choose an action to get started.</p>
 
         <label class="tool-label">Media</label>
-
         <button class="tool-button" type="button"
-                (click)="fileInput.click()"
-                [disabled]="busy">
-          <span>＋</span>
-          <span>Upload photo</span>
+          (click)="fileInput.click()" [disabled]="busy">
+          <span>＋</span><span>Upload photo</span>
         </button>
 
-        <input
-          #fileInput
-          type="file"
+        <input #fileInput type="file"
           accept="image/jpeg,image/png,image/webp"
-          hidden
-          (change)="onFileSelected($event)"
-        />
+          hidden (change)="onFileSelected($event)" />
 
         <label class="tool-label">Quick effects</label>
-
         <button class="tool-button" type="button"
-                (click)="applyGrayscale()"
-                [disabled]="!originalImage || busy">
-          <span>◐</span>
-          <span>Black &amp; white</span>
+          (click)="applyGrayscale()" [disabled]="!originalImage || busy">
+          <span>◐</span><span>Black &amp; white</span>
         </button>
-
         <button class="tool-button" type="button"
-                (click)="applyHighContrastBW()"
-                [disabled]="!originalImage || busy">
-          <span>◑</span>
-          <span>High-contrast B&amp;W</span>
+          (click)="applyHighContrastBW()" [disabled]="!originalImage || busy">
+          <span>◑</span><span>High-contrast B&amp;W</span>
         </button>
-
         <button class="tool-button" type="button"
-                (click)="applyBackgroundBlur()"
-                [disabled]="!originalImage || busy">
-          <span>◎</span>
-          <span>{{ busy ? 'Processing…' : 'AI background blur' }}</span>
+          (click)="applyBackgroundBlur()" [disabled]="!originalImage || busy">
+          <span>◎</span><span>{{ busy ? 'Processing…' : 'AI background blur' }}</span>
         </button>
-
         <button class="tool-button" type="button"
-                (click)="restoreOriginal()"
-                [disabled]="!originalImage || busy">
-          <span>↺</span>
-          <span>Restore original</span>
+          (click)="restoreOriginal()" [disabled]="!originalImage || busy">
+          <span>↺</span><span>Restore original</span>
         </button>
 
         <label class="tool-label">Add elements</label>
-
         <button class="tool-button" type="button"
-                (click)="addText()"
-                [disabled]="!originalImage || busy">
-          <span>T</span>
-          <span>Add text</span>
+          (click)="addText()" [disabled]="!originalImage || busy">
+          <span>T</span><span>Add text</span>
         </button>
-
         <button class="tool-button" type="button"
-                (click)="addShape()"
-                [disabled]="!originalImage || busy">
-          <span>◇</span>
-          <span>Add shape</span>
+          (click)="addShape()" [disabled]="!originalImage || busy">
+          <span>◇</span><span>Add shape</span>
         </button>
-
         <button class="tool-button" type="button"
-                (click)="rotateSelected()"
-                [disabled]="!originalImage || busy">
-          <span>⟳</span>
-          <span>Rotate selected</span>
+          (click)="rotateSelected()" [disabled]="!originalImage || busy">
+          <span>⟳</span><span>Rotate selected</span>
         </button>
-
         <button class="tool-button danger-tool" type="button"
-                (click)="deleteSelected()"
-                [disabled]="!originalImage || busy">
-          <span>⌫</span>
-          <span>Delete selected</span>
+          (click)="deleteSelected()" [disabled]="!originalImage || busy">
+          <span>⌫</span><span>Delete selected</span>
         </button>
       </aside>
 
@@ -125,10 +87,8 @@
             <h3>Your canvas</h3>
             <p>Select an object to move, resize, or rotate it.</p>
           </div>
-
           <button class="btn btn-primary" type="button"
-                  (click)="downloadPng()"
-                  [disabled]="!originalImage || busy">
+            (click)="downloadPng()" [disabled]="!originalImage || busy">
             ↓ Export PNG
           </button>
         </div>
@@ -144,8 +104,6 @@
             <strong>Your creative space</strong>
             <small>Upload a photo to begin editing</small>
           </div>
-
-          <!-- Must match @ViewChild('editorCanvas') in TypeScript -->
           <canvas #editorCanvas></canvas>
         </div>
 
@@ -158,7 +116,6 @@
 
     <section class="next-step">
       <div class="next-icon">↗</div>
-
       <div class="next-copy">
         <h3>Ready to share your creation?</h3>
         <p>
@@ -166,66 +123,9 @@
           for publishing.
         </p>
       </div>
-
-      <button class="btn btn-primary" type="button"
-              routerLink="/admin/posts">
+      <button class="btn btn-primary" type="button" routerLink="/admin/posts">
         Continue to Posts →
       </button>
     </section>
   </main>
-=======
-<div class="editor-page">
-  <h2>Photo Editor</h2>
-  <p>Upload a photo, apply an AI background effect, then add text or shapes.</p>
-
-  <div class="toolbar">
-    <label class="file-button">
-      Upload photo
-      <input
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        (change)="onFileSelected($event)"
-      />
-    </label>
-
-    <button (click)="applyBackgroundBlur()" [disabled]="!originalImage || busy">
-      {{ busy ? 'Processing…' : 'AI background blur' }}
-    </button>
-
-    <button (click)="restoreOriginal()" [disabled]="!originalImage">
-      Restore original
-    </button>
-
-    <button (click)="addText()" [disabled]="!canvas">
-      Add text
-    </button>
-
-    <button (click)="addRectangle()" [disabled]="!canvas">
-      Add shape
-    </button>
-
-    <button (click)="deleteSelected()" [disabled]="!canvas">
-      Delete selected
-    </button>
-
-    <button (click)="rotateSelected()" [disabled]="!canvas">
-      Rotate selected
-    </button>
-
-    <button (click)="downloadImage()" [disabled]="!canvas">
-      Download PNG
-    </button>
-  </div>
-
-  <p class="status" role="status">{{ status }}</p>
-
-  <div class="canvas-container">
-    <canvas #editorCanvas></canvas>
-  </div>
-
-  <p class="hint">
-    Tip: click text or a shape to select it. Drag to move it and use the
-    corner handles to resize it.
-  </p>
->>>>>>> b81d3aa8a92a0385597fdca72d5caa61bcf19784
 </div>

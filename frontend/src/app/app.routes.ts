@@ -1,33 +1,31 @@
-<<<<<<< HEAD
 
-=======
->>>>>>> b81d3aa8a92a0385597fdca72d5caa61bcf19784
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { PhotoEditorComponent } from './photo-editor/photo-editor.component';
 
 export const routes: Routes = [
-<<<<<<< HEAD
-  // After login, send users to the editing studio.
+  // Photo/video editing studio - requires authentication.
   {
     path: 'editor',
     component: PhotoEditorComponent,
     canActivate: [authGuard]
   },
 
-  // Keep existing public pages and login/register routes.
+  // Public home pages.
   {
     path: '',
     loadChildren: () =>
       import('./public/public.module').then(m => m.PublicModule)
   },
+
+  // Login and registration pages.
   {
     path: 'auth',
     loadChildren: () =>
       import('./public/features/auth/auth.module').then(m => m.AuthModule)
   },
 
-  // Keep the existing protected CMS admin area.
+  // Protected CMS admin area.
   {
     path: 'admin',
     canActivate: [authGuard],
@@ -39,18 +37,5 @@ export const routes: Routes = [
   {
     path: '**',
     redirectTo: ''
-=======
-  { path: 'editor', component: PhotoEditorComponent },
-  { path: '', loadChildren: () => import('./public/public.module').then(m => m.PublicModule) },
-  { 
-    path: 'admin', 
-    canActivate:[authGuard],
-    loadChildren: () => import('./admin/admin.module').then(m => m.AdminModule) 
-  },
-  {
-    path: 'auth',
-    loadChildren: () => import('./public/features/auth/auth.module').then(m => m.AuthModule)
-
->>>>>>> b81d3aa8a92a0385597fdca72d5caa61bcf19784
   }
 ];
