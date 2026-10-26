@@ -1,83 +1,121 @@
-<div class="p-5">
-    <h1 class="text-left">Posts</h1>
-
-    <div class="flex justify-between items-center mb-5">
-        <button class="!rounded-lg" mat-raised-button routerLink="/admin/posts/add">Create</button>
-        <button
-            (click)="deleteSelectedPosts()"
-        [disabled]="!selection.hasValue()"
-         mat-raised-button color="warn">Delete 
-
-            <mat-icon>delete</mat-icon>
-        </button>
+<main class="publisher-page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">CONTENT WORKSPACE</p>
+      <h1>Social Publisher</h1>
+      <p class="subtitle">Prepare your edited media, tailor the details, and send it to your connected social accounts.</p>
     </div>
+    <div class="header-mark" aria-hidden="true">↗</div>
+  </header>
 
-    <div class="table-scroll rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <table mat-table [dataSource]="dataSource" class="mat-elevation-z8">
-
-        <!-- Checkbox Column -->
-        <ng-container matColumnDef="select">
-            <th mat-header-cell *matHeaderCellDef>
-                <mat-checkbox color="primary" (change)="$event ? toggleAllRows() : null"
-                    [checked]="selection.hasValue() && isAllSelected()"
-                    [indeterminate]="selection.hasValue() && !isAllSelected()" [aria-label]="checkboxLabel()">
-                </mat-checkbox>
-            </th>
-            <td mat-cell *matCellDef="let row">
-                <mat-checkbox (click)="$event.stopPropagation()" color="primary"
-                    (change)="$event ? selection.toggle(row) : null" [checked]="selection.isSelected(row)"
-                    [aria-label]="checkboxLabel(row)">
-                </mat-checkbox>
-            </td>
-        </ng-container>
-
-        <ng-container matColumnDef="id">
-            <th mat-header-cell *matHeaderCellDef> ID. </th>
-            <td mat-cell *matCellDef="let element"> {{element.id}} </td>
-        </ng-container>
-
-        <ng-container matColumnDef="totalComments">
-            <th mat-header-cell *matHeaderCellDef> Comments </th>
-            <td mat-cell *matCellDef="let element"> 
-                <a [routerLink]="'/admin/comments/'+element.id" (click)="$event.stopImmediatePropagation()">
-                    {{element.totalComments}}
-                </a>    
-            </td>
-        </ng-container>
-       
-        <ng-container matColumnDef="title">
-            <th mat-header-cell *matHeaderCellDef> Title </th>
-            <td mat-cell *matCellDef="let element"> {{element.title}} </td>
-        </ng-container>
-
-        <ng-container matColumnDef="categoryId">
-            <th mat-header-cell *matHeaderCellDef> Category </th>
-            <td mat-cell *matCellDef="let element"> {{element.category.name}} </td>
-        </ng-container>
-
-        <ng-container matColumnDef="createdAt">
-            <th mat-header-cell *matHeaderCellDef> Created At </th>
-            <td mat-cell *matCellDef="let element"> {{moment(element.createdAt).fromNow()}} </td>
-        </ng-container>
-
-        <ng-container matColumnDef="updatedAt">
-            <th mat-header-cell *matHeaderCellDef> Updated At </th>
-            <td mat-cell *matCellDef="let element"> {{moment(element.updatedAt).fromNow()}} </td>
-        </ng-container>
-
-        <ng-container matColumnDef="actions">
-            <th mat-header-cell *matHeaderCellDef> Actions </th>
-            <td mat-cell *matCellDef="let element">
-                <button mat-icon-button [routerLink]="['/admin/posts/edit', element.slug]">
-                    <mat-icon>edit</mat-icon>
-                </button>
-            </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;" (click)="selection.toggle(row)">
-        </tr>
-      </table>
+  <section class="platform-strip" aria-label="Supported platforms">
+    <div class="platform-item instagram">
+      <span class="platform-icon" aria-hidden="true">◎</span>
+      <span><strong>Instagram</strong><small>Photos, videos and Reels*</small></span>
+      <span class="platform-dot"></span>
     </div>
+    <div class="platform-item youtube">
+      <span class="platform-icon" aria-hidden="true">▶</span>
+      <span><strong>YouTube</strong><small>Video upload</small></span>
+      <span class="platform-dot"></span>
+    </div>
+    <p class="platform-note">*Account eligibility and media requirements apply. Connect accounts through the backend before publishing.</p>
+  </section>
 
-</div>
+  <div class="workspace">
+    <section class="panel media-panel">
+      <div class="section-heading">
+        <div><span class="step">01</span><h2>Your media</h2></div>
+        <span class="muted">Edited file</span>
+      </div>
+
+      <label class="upload-zone" for="mediaFile" *ngIf="!previewUrl">
+        <span class="upload-icon" aria-hidden="true">↑</span>
+        <strong>Drop your photo or video here</strong>
+        <span>or <u>browse files</u> from your computer</span>
+        <small>Images and videos · Use your exported/edited file</small>
+      </label>
+      <input id="mediaFile" class="file-input" type="file" accept="image/*,video/*" (change)="onFileSelected($event)">
+
+      <div class="preview-wrap" *ngIf="previewUrl">
+        <img *ngIf="isImage" [src]="previewUrl" alt="Selected media preview">
+        <video *ngIf="isVideo" [src]="previewUrl" controls playsinline></video>
+        <button type="button" class="remove-media" (click)="clearMedia()" aria-label="Remove selected media">×</button>
+      </div>
+      <div class="file-summary" *ngIf="selectedFile">
+        <span class="file-symbol">{{ isVideo ? '▶' : '▧' }}</span>
+        <div class="file-details"><strong>{{ selectedFile.name }}</strong><small>{{ (selectedFile.size / 1024 / 1024) | number:'1.1-1' }} MB · {{ isVideo ? 'Video' : 'Image' }}</small></div>
+        <span class="ready-pill">Ready</span>
+      </div>
+
+      <div class="helper-card">
+        <span aria-hidden="true">✦</span>
+        <div><strong>Created in your editor?</strong><p>Export the final image or video from your editing studio, then select that file here. This page previews and uploads the exported file; it does not edit the media itself.</p></div>
+      </div>
+    </section>
+
+    <section class="panel details-panel">
+      <div class="section-heading">
+        <div><span class="step">02</span><h2>Post details</h2></div>
+        <span class="muted">Customize your post</span>
+      </div>
+
+      <label class="field-label" for="caption">Caption <span>Instagram</span></label>
+      <textarea id="caption" [(ngModel)]="caption" name="caption" rows="5" maxlength="2200" placeholder="Write a caption that tells your story…"></textarea>
+      <div class="field-foot"><span>Make it yours with a clear message and hashtags.</span><span>{{ caption.length }}/2200</span></div>
+
+      <div class="divider"></div>
+      <label class="field-label" for="ytTitle">YouTube title <span>Required for YouTube</span></label>
+      <input id="ytTitle" type="text" [(ngModel)]="youtubeTitle" name="youtubeTitle" maxlength="100" placeholder="Give your video a clear title">
+      <div class="field-foot"><span>Up to 100 characters</span><span>{{ youtubeTitle.length }}/100</span></div>
+
+      <label class="field-label description-label" for="ytDescription">YouTube description</label>
+      <textarea id="ytDescription" [(ngModel)]="youtubeDescription" name="youtubeDescription" rows="3" maxlength="5000" placeholder="Add context, links or credits…"></textarea>
+
+      <label class="field-label" for="privacy">YouTube visibility</label>
+      <select id="privacy" [(ngModel)]="youtubePrivacy" name="youtubePrivacy">
+        <option value="private">Private — only you</option>
+        <option value="unlisted">Unlisted — anyone with the link</option>
+        <option value="public">Public — everyone</option>
+      </select>
+    </section>
+  </div>
+
+  <section class="panel destination-panel">
+    <div class="section-heading">
+      <div><span class="step">03</span><h2>Choose destinations</h2></div>
+      <span class="muted">Select one or both</span>
+    </div>
+    <div class="destination-grid">
+      <label class="destination-card instagram-card" [class.destination-selected]="publishInstagram">
+        <input type="checkbox" [(ngModel)]="publishInstagram" name="publishInstagram">
+        <span class="dest-icon insta-icon">◎</span>
+        <span class="dest-copy"><strong>Instagram</strong><small>Publish to a professional account</small><em>Requires Meta OAuth and a Business/Creator account.</em></span>
+        <span class="checkmark" aria-hidden="true">{{ publishInstagram ? '✓' : '+' }}</span>
+      </label>
+      <label class="destination-card youtube-card" [class.destination-selected]="publishYouTube">
+        <input type="checkbox" [(ngModel)]="publishYouTube" name="publishYouTube">
+        <span class="dest-icon yt-icon">▶</span>
+        <span class="dest-copy"><strong>YouTube</strong><small>Upload a video to your channel</small><em>Requires Google OAuth and YouTube Data API access.</em></span>
+        <span class="checkmark" aria-hidden="true">{{ publishYouTube ? '✓' : '+' }}</span>
+      </label>
+    </div>
+    <p class="validation-note" *ngIf="publishYouTube && selectedFile && !isVideo">YouTube accepts video uploads only. Select a video or turn off YouTube.</p>
+  </section>
+
+  <section class="publish-footer">
+    <div class="status-area" *ngIf="statusMessage" [ngClass]="'status-' + status" role="status" aria-live="polite">
+      <span class="status-symbol">{{ status === 'success' ? '✓' : status === 'error' ? '!' : 'i' }}</span>
+      <span>{{ statusMessage }}</span>
+    </div>
+    <div class="footer-actions">
+      <button type="button" class="btn-secondary" (click)="loadDraft()">Load draft</button>
+      <button type="button" class="btn-secondary" (click)="saveDraft()">Save draft</button>
+      <button type="button" class="btn-primary" [disabled]="!canSubmit || (publishYouTube && !isVideo)" (click)="publish()">
+        <span *ngIf="!busy">Publish post <span aria-hidden="true">↗</span></span>
+        <span *ngIf="busy" class="button-loading">Sending…</span>
+      </button>
+    </div>
+    <p class="fine-print">Publishing is confirmed only when the server responds successfully. Your platform accounts must be connected and authorized on the backend.</p>
+  </section>
+</main>
