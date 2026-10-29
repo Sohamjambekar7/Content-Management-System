@@ -59,8 +59,6 @@ Deploy the Angular `dist/frontend/browser` output to a static host (for example,
 
 ## 4. Deploy checklist
 
-- [ ] Use production secrets in host environment variables; never upload `.env`.
-- [ ] Rotate any credentials or API keys that were previously included in an archive or Git history.
 - [ ] Back up MySQL and apply/review migrations before release.
 - [ ] Configure a verified email sender and Resend API key if using email confirmation/reset.
 - [ ] Set `NODE_ENV=production`, `JWT_SECRET`, `FRONTEND_URL`, and database environment variables.
