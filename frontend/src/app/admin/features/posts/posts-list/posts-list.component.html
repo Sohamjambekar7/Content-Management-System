@@ -1,79 +1,235 @@
+
 <main class="publisher-page">
   <header class="page-header">
     <div>
       <p class="eyebrow">CONTENT WORKSPACE</p>
       <h1>Social Publisher</h1>
-      <p class="subtitle">Prepare your edited media, tailor the details, and send it to your connected social accounts.</p>
+      <p class="subtitle">
+        Prepare your edited media, tailor the details, and send it to your connected social accounts.
+      </p>
     </div>
     <div class="header-mark" aria-hidden="true">↗</div>
   </header>
 
+  <!-- Platform overview -->
   <section class="platform-strip" aria-label="Supported platforms">
     <div class="platform-item instagram">
       <span class="platform-icon" aria-hidden="true">◎</span>
-      <span><strong>Instagram</strong><small>Photos, videos and Reels*</small></span>
+      <span>
+        <strong>Instagram</strong>
+        <small>Photos, videos and Reels*</small>
+      </span>
       <span class="platform-dot"></span>
     </div>
+
     <div class="platform-item youtube">
       <span class="platform-icon" aria-hidden="true">▶</span>
-      <span><strong>YouTube</strong><small>Video upload</small></span>
-      <span class="platform-dot"></span>
+      <span>
+        <strong>YouTube</strong>
+        <small>Video upload</small>
+      </span>
+      <span
+        class="platform-dot"
+        [class.connected-dot]="youtubeConnected">
+      </span>
     </div>
-    <p class="platform-note">*Account eligibility and media requirements apply. Connect accounts through the backend before publishing.</p>
+
+    <p class="platform-note">
+      *Account eligibility and media requirements apply. Connect accounts through the backend before publishing.
+    </p>
   </section>
 
+  <!-- YouTube account connection -->
+  <section class="panel youtube-connection-panel">
+    <div class="section-heading">
+      <div>
+        <span class="step">YT</span>
+        <h2>YouTube account</h2>
+      </div>
+
+      <span
+        class="connection-badge"
+        [class.connection-badge-connected]="youtubeConnected">
+        {{ checkingYouTube ? 'Checking…' : youtubeConnected ? 'Connected' : 'Not connected' }}
+      </span>
+    </div>
+
+    <p class="connection-description">
+      Connect your Google account to authorize video uploads to your YouTube channel.
+    </p>
+
+    <div class="connection-actions">
+      <button
+        type="button"
+        class="btn-primary"
+        *ngIf="!youtubeConnected"
+        [disabled]="checkingYouTube"
+        (click)="connectYouTube()">
+        Connect YouTube
+      </button>
+
+      <button
+        type="button"
+        class="btn-secondary"
+        [disabled]="checkingYouTube"
+        (click)="checkYouTubeStatus()">
+        {{ checkingYouTube ? 'Checking…' : 'Check connection' }}
+      </button>
+    </div>
+
+    <p class="connection-help" *ngIf="youtubeConnected">
+      Your backend reports that YouTube is connected. You can select a video and prepare an upload.
+    </p>
+
+    <p class="connection-help" *ngIf="!youtubeConnected && !checkingYouTube">
+      YouTube must be connected before uploading. If you reconnect, Google may ask you to authorize access.
+    </p>
+  </section>
+
+  <!-- Media workspace -->
   <div class="workspace">
     <section class="panel media-panel">
       <div class="section-heading">
-        <div><span class="step">01</span><h2>Your media</h2></div>
+        <div>
+          <span class="step">01</span>
+          <h2>Your media</h2>
+        </div>
         <span class="muted">Edited file</span>
       </div>
 
-      <label class="upload-zone" for="mediaFile" *ngIf="!previewUrl">
+      <label
+        class="upload-zone"
+        for="mediaFile"
+        *ngIf="!previewUrl">
         <span class="upload-icon" aria-hidden="true">↑</span>
         <strong>Drop your photo or video here</strong>
         <span>or <u>browse files</u> from your computer</span>
         <small>Images and videos · Use your exported/edited file</small>
       </label>
-      <input id="mediaFile" class="file-input" type="file" accept="image/*,video/*" (change)="onFileSelected($event)">
+
+      <input
+        id="mediaFile"
+        class="file-input"
+        type="file"
+        accept="image/*,video/*"
+        (change)="onFileSelected($event)">
 
       <div class="preview-wrap" *ngIf="previewUrl">
-        <img *ngIf="isImage" [src]="previewUrl" alt="Selected media preview">
-        <video *ngIf="isVideo" [src]="previewUrl" controls playsinline></video>
-        <button type="button" class="remove-media" (click)="clearMedia()" aria-label="Remove selected media">×</button>
+        <img
+          *ngIf="isImage"
+          [src]="previewUrl"
+          alt="Selected media preview">
+
+        <video
+          *ngIf="isVideo"
+          [src]="previewUrl"
+          controls
+          playsinline>
+        </video>
+
+        <button
+          type="button"
+          class="remove-media"
+          (click)="clearMedia()"
+          aria-label="Remove selected media">
+          ×
+        </button>
       </div>
+
       <div class="file-summary" *ngIf="selectedFile">
         <span class="file-symbol">{{ isVideo ? '▶' : '▧' }}</span>
-        <div class="file-details"><strong>{{ selectedFile.name }}</strong><small>{{ (selectedFile.size / 1024 / 1024) | number:'1.1-1' }} MB · {{ isVideo ? 'Video' : 'Image' }}</small></div>
+
+        <div class="file-details">
+          <strong>{{ selectedFile.name }}</strong>
+          <small>
+            {{ (selectedFile.size / 1024 / 1024) | number:'1.1-1' }} MB
+            · {{ isVideo ? 'Video' : 'Image' }}
+          </small>
+        </div>
+
         <span class="ready-pill">Ready</span>
       </div>
 
       <div class="helper-card">
         <span aria-hidden="true">✦</span>
-        <div><strong>Created in your editor?</strong><p>Export the final image or video from your editing studio, then select that file here. This page previews and uploads the exported file; it does not edit the media itself.</p></div>
+        <div>
+          <strong>Created in your editor?</strong>
+          <p>
+            Export the final image or video from your editing studio, then select that file here.
+            This page previews and uploads the exported file; it does not edit the media itself.
+          </p>
+        </div>
       </div>
     </section>
 
+    <!-- Post details -->
     <section class="panel details-panel">
       <div class="section-heading">
-        <div><span class="step">02</span><h2>Post details</h2></div>
+        <div>
+          <span class="step">02</span>
+          <h2>Post details</h2>
+        </div>
         <span class="muted">Customize your post</span>
       </div>
 
-      <label class="field-label" for="caption">Caption <span>Instagram</span></label>
-      <textarea id="caption" [(ngModel)]="caption" name="caption" rows="5" maxlength="2200" placeholder="Write a caption that tells your story…"></textarea>
-      <div class="field-foot"><span>Make it yours with a clear message and hashtags.</span><span>{{ caption.length }}/2200</span></div>
+      <label class="field-label" for="caption">
+        Caption <span>Instagram</span>
+      </label>
+
+      <textarea
+        id="caption"
+        [(ngModel)]="caption"
+        name="caption"
+        rows="5"
+        maxlength="2200"
+        placeholder="Write a caption that tells your story…">
+      </textarea>
+
+      <div class="field-foot">
+        <span>Make it yours with a clear message and hashtags.</span>
+        <span>{{ caption.length }}/2200</span>
+      </div>
 
       <div class="divider"></div>
-      <label class="field-label" for="ytTitle">YouTube title <span>Required for YouTube</span></label>
-      <input id="ytTitle" type="text" [(ngModel)]="youtubeTitle" name="youtubeTitle" maxlength="100" placeholder="Give your video a clear title">
-      <div class="field-foot"><span>Up to 100 characters</span><span>{{ youtubeTitle.length }}/100</span></div>
 
-      <label class="field-label description-label" for="ytDescription">YouTube description</label>
-      <textarea id="ytDescription" [(ngModel)]="youtubeDescription" name="youtubeDescription" rows="3" maxlength="5000" placeholder="Add context, links or credits…"></textarea>
+      <label class="field-label" for="ytTitle">
+        YouTube title <span>Required for YouTube</span>
+      </label>
 
-      <label class="field-label" for="privacy">YouTube visibility</label>
-      <select id="privacy" [(ngModel)]="youtubePrivacy" name="youtubePrivacy">
+      <input
+        id="ytTitle"
+        type="text"
+        [(ngModel)]="youtubeTitle"
+        name="youtubeTitle"
+        maxlength="100"
+        placeholder="Give your video a clear title">
+
+      <div class="field-foot">
+        <span>Up to 100 characters</span>
+        <span>{{ youtubeTitle.length }}/100</span>
+      </div>
+
+      <label class="field-label description-label" for="ytDescription">
+        YouTube description
+      </label>
+
+      <textarea
+        id="ytDescription"
+        [(ngModel)]="youtubeDescription"
+        name="youtubeDescription"
+        rows="3"
+        maxlength="5000"
+        placeholder="Add context, links or credits…">
+      </textarea>
+
+      <label class="field-label" for="privacy">
+        YouTube visibility
+      </label>
+
+      <select
+        id="privacy"
+        [(ngModel)]="youtubePrivacy"
+        name="youtubePrivacy">
         <option value="private">Private — only you</option>
         <option value="unlisted">Unlisted — anyone with the link</option>
         <option value="public">Public — everyone</option>
@@ -81,41 +237,123 @@
     </section>
   </div>
 
+  <!-- Destination selection -->
   <section class="panel destination-panel">
     <div class="section-heading">
-      <div><span class="step">03</span><h2>Choose destinations</h2></div>
+      <div>
+        <span class="step">03</span>
+        <h2>Choose destinations</h2>
+      </div>
       <span class="muted">Select one or both</span>
     </div>
+
     <div class="destination-grid">
-      <label class="destination-card instagram-card" [class.destination-selected]="publishInstagram">
-        <input type="checkbox" [(ngModel)]="publishInstagram" name="publishInstagram">
+      <label
+        class="destination-card instagram-card"
+        [class.destination-selected]="publishInstagram">
+        <input
+          type="checkbox"
+          [(ngModel)]="publishInstagram"
+          name="publishInstagram">
+
         <span class="dest-icon insta-icon">◎</span>
-        <span class="dest-copy"><strong>Instagram</strong><small>Publish to a professional account</small><em>Requires Meta OAuth and a Business/Creator account.</em></span>
-        <span class="checkmark" aria-hidden="true">{{ publishInstagram ? '✓' : '+' }}</span>
+
+        <span class="dest-copy">
+          <strong>Instagram</strong>
+          <small>Publish to a professional account</small>
+          <em>Requires Meta OAuth and a Business/Creator account.</em>
+        </span>
+
+        <span class="checkmark" aria-hidden="true">
+          {{ publishInstagram ? '✓' : '+' }}
+        </span>
       </label>
-      <label class="destination-card youtube-card" [class.destination-selected]="publishYouTube">
-        <input type="checkbox" [(ngModel)]="publishYouTube" name="publishYouTube">
+
+      <label
+        class="destination-card youtube-card"
+        [class.destination-selected]="publishYouTube">
+        <input
+          type="checkbox"
+          [(ngModel)]="publishYouTube"
+          name="publishYouTube">
+
         <span class="dest-icon yt-icon">▶</span>
-        <span class="dest-copy"><strong>YouTube</strong><small>Upload a video to your channel</small><em>Requires Google OAuth and YouTube Data API access.</em></span>
-        <span class="checkmark" aria-hidden="true">{{ publishYouTube ? '✓' : '+' }}</span>
+
+        <span class="dest-copy">
+          <strong>YouTube</strong>
+          <small>Upload a video to your channel</small>
+          <em>Requires Google OAuth and YouTube Data API access.</em>
+        </span>
+
+        <span class="checkmark" aria-hidden="true">
+          {{ publishYouTube ? '✓' : '+' }}
+        </span>
       </label>
     </div>
-    <p class="validation-note" *ngIf="publishYouTube && selectedFile && !isVideo">YouTube accepts video uploads only. Select a video or turn off YouTube.</p>
+
+    <p
+      class="validation-note"
+      *ngIf="publishYouTube && selectedFile && !isVideo">
+      YouTube accepts video uploads only. Select a video or turn off YouTube.
+    </p>
+
+    <p
+      class="validation-note"
+      *ngIf="publishYouTube && !youtubeConnected">
+      Connect your YouTube account before publishing a video.
+    </p>
+
+    <p
+      class="validation-note"
+      *ngIf="publishInstagram && publishYouTube">
+      Combined Instagram and YouTube publishing requires a backend endpoint that supports both platforms.
+    </p>
   </section>
 
+  <!-- Status and actions -->
   <section class="publish-footer">
-    <div class="status-area" *ngIf="statusMessage" [ngClass]="'status-' + status" role="status" aria-live="polite">
-      <span class="status-symbol">{{ status === 'success' ? '✓' : status === 'error' ? '!' : 'i' }}</span>
+    <div
+      class="status-area"
+      *ngIf="statusMessage"
+      [ngClass]="'status-' + status"
+      role="status"
+      aria-live="polite">
+      <span class="status-symbol">
+        {{ status === 'success' ? '✓' : status === 'error' ? '!' : 'i' }}
+      </span>
       <span>{{ statusMessage }}</span>
     </div>
+
     <div class="footer-actions">
-      <button type="button" class="btn-secondary" (click)="loadDraft()">Load draft</button>
-      <button type="button" class="btn-secondary" (click)="saveDraft()">Save draft</button>
-      <button type="button" class="btn-primary" [disabled]="!canSubmit || (publishYouTube && !isVideo)" (click)="publish()">
-        <span *ngIf="!busy">Publish post <span aria-hidden="true">↗</span></span>
+      <button
+        type="button"
+        class="btn-secondary"
+        (click)="loadDraft()">
+        Load draft
+      </button>
+
+      <button
+        type="button"
+        class="btn-secondary"
+        (click)="saveDraft()">
+        Save draft
+      </button>
+
+      <button
+        type="button"
+        class="btn-primary"
+        [disabled]="!canSubmit || (publishYouTube && !isVideo)"
+        (click)="publish()">
+        <span *ngIf="!busy">
+          Publish post <span aria-hidden="true">↗</span>
+        </span>
         <span *ngIf="busy" class="button-loading">Sending…</span>
       </button>
     </div>
-    <p class="fine-print">Publishing is confirmed only when the server responds successfully. Your platform accounts must be connected and authorized on the backend.</p>
+
+    <p class="fine-print">
+      Publishing is confirmed only when the server responds successfully.
+      Your platform accounts must be connected and authorized on the backend.
+    </p>
   </section>
 </main>
