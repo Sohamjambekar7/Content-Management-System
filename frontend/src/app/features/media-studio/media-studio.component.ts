@@ -69,7 +69,6 @@ export class MediaStudioComponent implements OnInit, AfterViewInit, OnDestroy {
   private originalPhotoEl: HTMLImageElement | null = null;
   private photoObjectUrl: string | null = null;
   private segmenter: ImageSegmenter | null = null;
-  private bgRemovalPipeline: unknown = null;
   private destroyed = false;
 
   photoFile: File | null = null;
@@ -547,6 +546,24 @@ export class MediaStudioComponent implements OnInit, AfterViewInit, OnDestroy {
     this.photoStatus = 'Overlay removed.';
   }
 
+  private async getSegmenter(): Promise<ImageSegmenter> {
+    if (!this.segmenter) {
+      const vision = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+      );
+      this.segmenter = await ImageSegmenter.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath:
+            'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite',
+        },
+        runningMode: 'IMAGE',
+        outputCategoryMask: true,
+        outputConfidenceMasks: false,
+      });
+    }
+    return this.segmenter;
+  }
+
   async applyAiBackgroundBlur(): Promise<void> {
     if (!this.originalPhotoEl || this.photoBusy) return;
     this.photoBusy = true;
@@ -555,20 +572,7 @@ export class MediaStudioComponent implements OnInit, AfterViewInit, OnDestroy {
     let mask: ReturnType<ImageSegmenter['segment']>['categoryMask'] = undefined;
 
     try {
-      if (!this.segmenter) {
-        const vision = await FilesetResolver.forVisionTasks(
-          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
-        );
-        this.segmenter = await ImageSegmenter.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath:
-              'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite',
-          },
-          runningMode: 'IMAGE',
-          outputCategoryMask: true,
-          outputConfidenceMasks: false,
-        });
-      }
+      const segmenter = await this.getSegmenter();
 
       this.photoAiProgress = 55;
       this.photoStatus = 'Segmenting subject and blurring background…';
@@ -582,7 +586,7 @@ export class MediaStudioComponent implements OnInit, AfterViewInit, OnDestroy {
       source.height = height;
       source.getContext('2d')!.drawImage(img, 0, 0, width, height);
 
-      const segResult = this.segmenter.segment(source);
+      const segResult = segmenter.segment(source);
       mask = segResult.categoryMask;
       if (!mask) throw new Error('Segmentation mask unavailable.');
 
@@ -639,50 +643,65 @@ export class MediaStudioComponent implements OnInit, AfterViewInit, OnDestroy {
   async applyAiBackgroundRemoval(): Promise<void> {
     if (!this.originalPhotoEl || this.photoBusy) return;
     this.photoBusy = true;
-    this.photoAiProgress = 8;
-    this.photoStatus = 'Loading browser RMBG-1.4 background removal model…';
+    this.photoAiProgress = 20;
+    this.photoStatus = 'Loading MediaPipe AI portrait segmentation model…';
+    let mask: ReturnType<ImageSegmenter['segment']>['categoryMask'] = undefined;
 
     try {
-      if (!this.bgRemovalPipeline) {
-        const transformers = await import('@huggingface/transformers');
-        this.bgRemovalPipeline = await (transformers.pipeline as any)(
-          'background-removal',
-          'briaai/RMBG-1.4',
-          {
-            progress_callback: (evt: { progress?: number }) => {
-              if (typeof evt?.progress === 'number') {
-                this.photoAiProgress = Math.max(8, Math.min(95, Math.round(evt.progress)));
-              }
-            },
-          }
-        );
+      const segmenter = await this.getSegmenter();
+      this.photoAiProgress = 60;
+      this.photoStatus = 'Segmenting subject and removing background…';
+      const img = this.originalPhotoEl;
+      const scale = Math.min(1, 960 / Math.max(img.naturalWidth, img.naturalHeight));
+      const width = Math.max(1, Math.round(img.naturalWidth * scale));
+      const height = Math.max(1, Math.round(img.naturalHeight * scale));
+
+      const source = document.createElement('canvas');
+      source.width = width;
+      source.height = height;
+      source.getContext('2d')!.drawImage(img, 0, 0, width, height);
+
+      const segResult = segmenter.segment(source);
+      mask = segResult.categoryMask;
+      if (!mask) throw new Error('Segmentation mask unavailable.');
+
+      const maskData = mask.getAsUint8Array();
+      const maskCanvas = document.createElement('canvas');
+      maskCanvas.width = width;
+      maskCanvas.height = height;
+      const mCtx = maskCanvas.getContext('2d')!;
+      const pixels = mCtx.createImageData(width, height);
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const sx = Math.min(mask.width - 1, Math.floor((x * mask.width) / width));
+          const sy = Math.min(mask.height - 1, Math.floor((y * mask.height) / height));
+          const idx = (y * width + x) * 4;
+          const fg = maskData[sy * mask.width + sx] > 0;
+          pixels.data[idx] = 255;
+          pixels.data[idx + 1] = 255;
+          pixels.data[idx + 2] = 255;
+          pixels.data[idx + 3] = fg ? 255 : 0;
+        }
       }
+      mCtx.putImageData(pixels, 0, 0);
 
-      const result = await (this.bgRemovalPipeline as any)(this.originalPhotoEl);
-      const first = Array.isArray(result) ? result[0] : result;
-      const src = first?.toBlob ? await first.toBlob() : first?.image;
-      const out = document.createElement('canvas');
+      const fgCanvas = document.createElement('canvas');
+      fgCanvas.width = width;
+      fgCanvas.height = height;
+      const fgCtx = fgCanvas.getContext('2d')!;
+      fgCtx.drawImage(source, 0, 0);
+      fgCtx.globalCompositeOperation = 'destination-in';
+      fgCtx.drawImage(maskCanvas, 0, 0);
 
-      if (src instanceof Blob) {
-        const bmp = await createImageBitmap(src);
-        out.width = bmp.width;
-        out.height = bmp.height;
-        out.getContext('2d')!.drawImage(bmp, 0, 0);
-      } else if (src && 'data' in src) {
-        out.width = src.width;
-        out.height = src.height;
-        out.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(src.data), src.width, src.height), 0, 0);
-      } else {
-        throw new Error('Unsupported background removal output.');
-      }
-
-      await this.replaceOriginalPhotoFromDataUrl(out.toDataURL('image/png'));
+      await this.replaceOriginalPhotoFromDataUrl(fgCanvas.toDataURL('image/png'));
       this.photoAiProgress = 100;
       this.photoStatus = 'AI background removed cleanly in-browser.';
     } catch (err) {
       console.error('AI background removal failed:', err);
-      this.photoStatus = 'AI background removal could not run in this browser. Standard tools remain active.';
+      this.photoStatus = 'AI background removal unavailable (check internet/WebGL support).';
     } finally {
+      mask?.close();
       this.photoBusy = false;
     }
   }

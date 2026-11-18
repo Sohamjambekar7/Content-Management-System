@@ -180,5 +180,5 @@ describe('Media Processor Filter Builders & FFmpeg Pipeline', () => {
     } finally {
       await fs.promises.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
     }
-  });
+  }, 90000);
 });

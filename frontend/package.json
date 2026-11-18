@@ -21,7 +21,6 @@
     "@angular/platform-browser": "^18.0.0",
     "@angular/platform-browser-dynamic": "^18.0.0",
     "@angular/router": "^18.0.0",
-    "@huggingface/transformers": "^3.7.2",
     "@mediapipe/tasks-vision": "^1.1.1",
     "fabric": "^7.4.0",
     "moment": "^2.30.1",
