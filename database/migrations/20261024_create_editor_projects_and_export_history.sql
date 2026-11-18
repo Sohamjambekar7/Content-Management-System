@@ -1,4 +1,4 @@
--- ContentDesk AI editor metadata tables (MySQL 8+).
+-- EASEContent AI editor metadata tables (MySQL 8+).
 -- Run after the existing CMS users table has been created. Back up production first.
 -- The current Sequelize User model uses the default `Users` table name.
 CREATE TABLE IF NOT EXISTS editor_projects (

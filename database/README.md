@@ -1,6 +1,12 @@
-# Database setup and migrations
+# EASEContent Database Setup and Migrations
 
-The backend uses Sequelize model names `Users`, `Posts`, `Categories`, `Tags`, `Comments`, `Tokens`, and `PostTags` by default. Table-name capitalization depends on the database and the Sequelize configuration used when the database was first created. **Back up the database first** and confirm table names with `SHOW TABLES;` before applying the migration.
+The backend uses Sequelize model tables `Users`, `Posts`, `Categories`, `Tags`, `Comments`, `Tokens`, `PostTags`, `editor_projects`, `export_history`, `media_jobs`, `youtube_accounts`, and `youtube_publish_records`. Table-name capitalization depends on the database and the Sequelize configuration used when the database was first created. **Back up the database first** and confirm table names with `SHOW TABLES;` before applying migrations.
+
+## Additive SQL Migrations
+
+Run migrations in chronological order inside `database/migrations/`:
+1. `20261024_create_editor_projects_and_export_history.sql`
+2. `20261118_easecontent_media_jobs_and_youtube.sql`
 
 ## Repair the missing `Posts.categoryId` column
 

@@ -1,5 +1,9 @@
 <section class="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-  <div><p class="mb-2 text-xs font-bold uppercase tracking-[.2em] text-indigo-600">THE CONTENT HUB</p><h1>Ideas worth sharing.</h1><p class="m-0 max-w-2xl text-base text-slate-500">Explore the latest stories, updates, and insights from our community.</p></div>
+  <div>
+    <p class="mb-2 text-xs font-bold uppercase tracking-[.2em] text-indigo-600">EASECONTENT HUB</p>
+    <h1>Ideas worth sharing.</h1>
+    <p class="m-0 max-w-2xl text-base text-slate-500">Explore the latest stories, updates, and insights created on EASEContent.</p>
+  </div>
 </section>
 @if (posts.length) {
   <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -8,10 +12,10 @@
         <div class="mb-4 flex items-center justify-between gap-3"><span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">{{post.category?.name || 'Article'}}</span><span class="text-xs text-slate-400">{{post.createdAt | date:'mediumDate'}}</span></div>
         <a [routerLink]="'/post/'+post.slug" class="mb-3 text-xl font-bold leading-snug text-slate-900 transition group-hover:text-indigo-700">{{post.title}}</a>
         <p class="line-clamp-3 grow text-sm text-slate-500">{{post.content}}</p>
-        <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-slate-500"><span>By {{post.user?.name || 'CMS author'}}</span><a [routerLink]="'/post/'+post.slug" class="font-bold text-indigo-600">Read article →</a></div>
+        <div class="mt-5 flex items-center justify-between border-t border-slate-100 pt-4 text-xs text-slate-500"><span>By {{post.user?.name || 'EASEContent author'}}</span><a [routerLink]="'/post/'+post.slug" class="font-bold text-indigo-600">Read article →</a></div>
       </article>
     }
   </div>
 } @else {
-  <div class="cms-panel px-6 py-16 text-center"><div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><mat-icon>article</mat-icon></div><h2 class="mb-2 text-xl font-bold">Nothing published yet</h2><p class="mx-auto max-w-md text-sm text-slate-500">When content is published, it will appear here. Sign in to start creating your first post.</p><a routerLink="/auth/login" class="cms-button mt-3">Open CMS</a></div>
+  <div class="cms-panel px-6 py-16 text-center"><div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><mat-icon>article</mat-icon></div><h2 class="mb-2 text-xl font-bold">Nothing published yet</h2><p class="mx-auto max-w-md text-sm text-slate-500">When content is published, it will appear here. Sign in to start creating posts or editing media in EASEContent.</p><a routerLink="/auth/login" class="cms-button mt-3">Open EASEContent</a></div>
 }

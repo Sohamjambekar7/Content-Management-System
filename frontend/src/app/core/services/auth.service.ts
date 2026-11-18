@@ -30,7 +30,6 @@ export class AuthService {
       tap(session => {
         this.session = session;
         localStorage.setItem('session', JSON.stringify(session));
-        void this.router.navigate(['/admin']);
       })
     );
   }

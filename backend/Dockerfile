@@ -1,41 +1,45 @@
-# Use Node.js LTS (Long Term Support) as the base image
-FROM node:20-alpine as builder
+# syntax=docker/dockerfile:1.7
 
-# Set the working directory
+# ---- Stage 1: Build TypeScript backend & worker ----
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install dependencies
+COPY package.json package-lock.json ./
 RUN npm ci
 
-# Copy the rest of the application code
-COPY . .
-
-# Build TypeScript code
+COPY tsconfig.json ./
+COPY src ./src
 RUN npm run build
 
-# Start a new stage for a smaller production image
-FROM node:20-alpine
-
-# Set the working directory
+# ---- Stage 2: Production runtime base (includes FFmpeg for media processing) ----
+FROM node:20-alpine AS runtime-base
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+RUN apk add --no-cache ffmpeg tzdata curl
 
-# Install only production dependencies
-RUN npm ci --omit=dev
+ENV NODE_ENV=production \
+    PORT=5000 \
+    MEDIA_STORAGE_DIR=/app/storage/media
 
-# Copy built assets from the builder stage
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
+
 COPY --from=builder /app/dist ./dist
 
-# Set NODE_ENV to production
-ENV NODE_ENV production
+RUN mkdir -p /app/storage/media/uploads /app/storage/media/outputs /app/storage/media/tmp \
+    && chown -R node:node /app
 
-# Expose the port the app runs on
+USER node
+
+# ---- Stage 3a: API Server ----
+FROM runtime-base AS api
+ENV SERVICE_NAME=easecontent-api
 EXPOSE 5000
-
-# Start the application
+HEALTHCHECK --interval=20s --timeout=5s --start-period=25s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:5000/health || exit 1
 CMD ["node", "dist/index.js"]
+
+# ---- Stage 3b: Async Media Worker ----
+FROM runtime-base AS worker
+ENV SERVICE_NAME=easecontent-worker
+CMD ["node", "dist/worker.js"]

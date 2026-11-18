@@ -69,9 +69,12 @@ export class LoginComponent {
     }).subscribe({
       next: () => {
         this.isSubmitting = false;
-
-        // Redirect to the editing studio after successful login.
-        this.router.navigate(['/editor']);
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        const safeTarget =
+          returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//')
+            ? returnUrl
+            : '/editor';
+        void this.router.navigateByUrl(safeTarget);
       },
       error: (err) => {
         this.isSubmitting = false;

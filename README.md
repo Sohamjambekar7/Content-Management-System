@@ -1,87 +1,191 @@
-# ContentDesk CMS
+# EASEContent
 
-An Angular 18 + TypeScript + Tailwind CSS frontend with an Express/TypeScript API and MySQL persistence. This repository is the cleaned-up, deployable starting point for the supplied CMS project.
+**EASEContent** is an integrated content management, AI-assisted photo and video editing, and direct YouTube publishing platform built with Angular 18, Tailwind CSS, Express + TypeScript, MySQL 8, Redis/BullMQ, and FFmpeg.
 
-## Requirements
+---
 
-- Node.js 20 LTS or newer (use the same major version locally and in deployment)
-- npm
-- MySQL 8+
+## Key Capabilities
 
-## 1. Configure MySQL
+- **Content Workspace & Publishing:** Manage articles, categories, tags, and comment moderation with JWT access/refresh sessions and bcrypt password security.
+- **AI Photo & Video Creative Studio (`/editor`):**
+  - **Photo Editing:** Interactive Fabric.js canvas, crop & aspect-ratio presets (`Original`, `16:9`, `9:16`, `1:1`, `4:5`, `4:3`), rotate/flip, brightness/contrast/saturation/exposure/sharpness adjustments, LUT/filter presets, text & shape overlays, browser AI portrait background blur (MediaPipe), browser AI background removal (RMBG-1.4), async server AI Smart Enhance, and PNG/JPEG/WebP quality export controls.
+  - **Video Editing:** Timeline trimming, playback speed (`0.5x–2x`), aspect-ratio framing (`9:16` Shorts/Reels, `16:9` YouTube, `1:1`, `4:5`, `Original`) with crop/letterbox modes, volume/mute/audio normalization (`loudnorm`), color filters/LUTs, fade-in/fade-out transitions, live timed subtitles/captions overlay burned into MP4 exports, and AI video helpers (**AI Smart Trim** via silence detection, **AI Highlight Finder** via scene detection, **AI Auto-Captions**, and **AI Title & Description Generator**).
+  - **Async Background Rendering:** Heavy FFmpeg rendering and AI analysis run asynchronously via BullMQ + Redis workers (with an automatic in-process async fallback for single-machine local dev) and stream live progress over Server-Sent Events (SSE) with instant preview playback before publishing.
+- **Email-Bound YouTube Publishing:**
+  - Directly publish rendered MP4s or uploaded videos from the Creative Studio modal via the **YouTube Data API v3**.
+  - OAuth tokens are encrypted at rest (AES-256-GCM) and **strictly verified against the logged-in user's EASEContent email** (`login_hint` + Google `userinfo` verification) to prevent cross-account uploads and prompt re-authorization if missing, expired, or mismatched.
+  - Every upload is saved to the user's EASEContent publish history with its YouTube link, visibility status, and channel metadata.
 
-Create a database and a dedicated user; do not deploy with the MySQL `root` account. Example (change credentials):
+---
 
-```sql
-CREATE DATABASE cms_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'cms_user'@'localhost' IDENTIFIED BY 'replace_with_a_long_random_password';
-GRANT ALL PRIVILEGES ON cms_db.* TO 'cms_user'@'localhost';
-FLUSH PRIVILEGES;
+## Architecture Overview
+
+```text
+┌───────────────────────────┐         ┌──────────────────────────────┐
+│  web (Angular 18 + Nginx) │──/api──▶│  api (Express + TypeScript)  │
+│  Port 8080 -> 80          │◀──SSE───│  Port 5000 · /health /ready  │
+└───────────────────────────┘         └───────┬──────────────┬───────┘
+                                              │              │
+                                              ▼              ▼
+                                     ┌────────────┐   ┌─────────────┐
+                                     │  MySQL 8   │   │   Redis 7   │
+                                     │  Metadata  │   │ BullMQ + Pub│
+                                     └────────────┘   └──────┬──────┘
+                                                             │
+                                                             ▼
+                                     ┌──────────────────────────────┐
+                                     │  worker (Node 20 + FFmpeg)   │
+                                     │  Async Video/Photo & AI Jobs │
+                                     │  Shared Volume: /storage     │
+                                     └──────────────────────────────┘
 ```
 
-For a brand-new empty database only, run `npm run db:init` from `backend/` to create missing tables. This does not modify existing tables. Do not use schema sync as a substitute for reviewed production migrations. Use the schema already supplied by your project/database. See [`database/README.md`](database/README.md) for the reported `Posts.categoryId` mismatch and a migration. Back up your data before applying schema changes.
+### Repository Structure
 
-## 2. Start the API
+- `frontend/` — Angular 18 application (`public`, `admin`, and lazy-loaded `features/media-studio` at `/editor`) + multi-stage Nginx `Dockerfile`.
+- `backend/` — Express/TypeScript API (`src/index.ts`), standalone BullMQ worker (`src/worker.ts`), Sequelize models, FFmpeg media processor, email-bound YouTube OAuth service, Vitest test suite (`tests/`), and multi-stage `Dockerfile` (`api` and `worker` targets).
+- `database/` — Additive MySQL 8+ migrations for editor projects, export history, async media jobs, encrypted YouTube OAuth accounts, and YouTube publish history.
+- `.github/workflows/` — `ci.yml` (lint, typecheck, test, build, Docker validation) and `cd.yml` (GHCR container image publishing and automated deployment).
+- `docker-compose.yml` — Full local/self-hosted orchestration (`mysql`, `redis`, `api`, `worker`, `web`).
+
+---
+
+## Local Development Setup
+
+### Prerequisites
+
+- **Node.js 20+** and **npm**
+- **MySQL 8+**
+- **FFmpeg** and **FFprobe** installed in `PATH` (required for server-side photo/video rendering and AI trim/highlight analysis)
+- **Redis 7+** *(optional for local dev — if `REDIS_URL` is empty, the API uses its built-in in-process async worker)*
+
+### 1. Configure Environment Variables
+
+Copy the environment templates and fill in your credentials:
+
+```bash
+cp .env.example .env
+cp backend/.env.example backend/.env
+```
+
+Set at minimum:
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+- `JWT_SECRET` (at least 32 random characters)
+- `TOKEN_ENCRYPTION_KEY` (at least 32 random characters for encrypting YouTube OAuth tokens)
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` (for YouTube publishing)
+
+### 2. Initialize Database
+
+Create the MySQL database and initialize tables:
+
+```sql
+CREATE DATABASE easecontent CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
 ```bash
 cd backend
-copy .env.example .env   # Windows PowerShell: Copy-Item .env.example .env
 npm ci
+npm run db:init
 ```
 
-Edit `backend/.env` with your database credentials, a strong random `JWT_SECRET` of at least 32 characters, and your frontend/backend URLs. Email confirmation and password reset require a working Resend API key and a sender address/domain verified with Resend; set `EMAIL_FROM` to a sender address/domain verified with Resend before production. Never commit `.env`.
+For existing production databases, review and run the additive SQL migrations in `database/migrations/` instead of auto-syncing.
 
-Then run:
+### 3. Run the Backend API (and Optional Worker)
 
 ```bash
+cd backend
 npm run dev
 ```
 
-API health check: `http://localhost:5000/api/health`. For production: `npm run build` then `npm start`. `npm start` runs compiled JavaScript from `dist/index.js`; do not run TypeScript source with `node`.
+If `REDIS_URL` is configured, start the standalone worker in another terminal:
 
-## 3. Start the Angular frontend
+```bash
+cd backend
+npm run dev:worker
+```
 
-Open a second terminal:
+Verify health endpoints:
+- Liveness: `GET http://localhost:5000/health` (and `/api/health`)
+- Readiness (MySQL + Queue + FFmpeg): `GET http://localhost:5000/ready` (and `/api/ready`)
+
+### 4. Run the Angular Frontend
 
 ```bash
 cd frontend
-npm install
+npm ci
 npm start
 ```
 
-Open `http://localhost:4200`. Development API URL is in `src/environments/environment.development.ts`. For production, replace `BACKEND_API_URL` in `src/environments/environment.ts` with the public HTTPS API URL, then build:
+Open `http://localhost:4200`. Register/sign in and navigate to `/#/editor` for the AI Creative Studio or `/#/admin` for the workspace dashboard.
+
+### 5. Run Tests & Builds
 
 ```bash
+# Backend typecheck, build, and Vitest test suite (including FFmpeg integration tests)
+cd backend
+npm run lint
 npm run build
+npm test
+
+# Frontend production build
+cd ../frontend
+npm run build -- --configuration production
 ```
 
-Deploy the Angular `dist/frontend/browser` output to a static host (for example, Nginx, Netlify, or Cloudflare Pages). Deploy the Node API to a Node host or container and MySQL to a managed database. Set `FRONTEND_URL` to the exact deployed frontend origin in the backend environment. Both hosts must use HTTPS in production.
+---
 
-## 4. Deploy checklist
+## YouTube OAuth Setup (Email-Bound Publishing)
 
-- [ ] Back up MySQL and apply/review migrations before release.
-- [ ] Configure a verified email sender and Resend API key if using email confirmation/reset.
-- [ ] Set `NODE_ENV=production`, `JWT_SECRET`, `FRONTEND_URL`, and database environment variables.
-- [ ] Set Angular `BACKEND_API_URL` to the HTTPS API domain and rebuild.
-- [ ] Test registration, email confirmation, login/logout, create/edit/delete posts, categories, tags, comments, and public post listing.
-- [ ] Confirm `/api/health` responds and review host logs.
+EASEContent enforces that the Google account authorized for YouTube uploads **matches the logged-in user's EASEContent email**.
 
-## Architecture
+1. Open [Google Cloud Console](https://console.cloud.google.com/) and create/select a project.
+2. Enable the **YouTube Data API v3**.
+3. Configure the **OAuth consent screen**:
+   - Add scopes:
+     - `https://www.googleapis.com/auth/youtube.upload`
+     - `https://www.googleapis.com/auth/youtube.readonly`
+     - `openid`, `email`, `profile`
+   - While in Testing mode, add your EASEContent login email(s) under **Test users**.
+4. Create **Credentials → OAuth 2.0 Client ID (Web application)**:
+   - Authorized redirect URIs:
+     - Local dev: `http://localhost:5000/api/youtube/callback`
+     - Docker Compose: `http://localhost:8080/api/youtube/callback`
+     - Production: `https://<your-domain>/api/youtube/callback`
+5. Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI` to `.env` / `backend/.env`.
+6. In the EASEContent Creative Studio (`/editor`), click **Publish to YouTube** → **Connect YouTube**, sign in with the **same email** used for EASEContent, enter a title and multi-line caption/description, and upload!
 
-- `frontend/`: Angular standalone components, routing, reactive forms, API services, auth guard/interceptors, Tailwind CSS and Angular Material.
-- `backend/`: Express REST API, Zod request validation, Sequelize models/services, JWT sessions and bcrypt password hashing.
-- `database/`: migration notes and SQL for the known missing category foreign key.
+---
 
-## Important notes
+## Docker & Docker Compose Usage
 
-This is a source-level remediation, not a claim of a verified zero-error production deployment. The environment used to prepare this archive has no npm network access and the original archive did not include installable dependencies, so run `npm ci`, `npm run typecheck`, and `npm run build` on your machine before deployment. Fix any schema-specific migration differences against your real MySQL database.
+Run the complete stack (`web`, `api`, `worker`, `mysql`, `redis`) with one command:
 
+```bash
+cp .env.example .env
+# Edit .env with strong passwords, JWT_SECRET, TOKEN_ENCRYPTION_KEY, and Google OAuth credentials
+docker compose up -d --build
+```
 
-## AI Photo & Video Editor
+- Web App (via Nginx reverse proxy): `http://localhost:8080`
+- API Health: `http://localhost:8080/health`
+- API Readiness: `http://localhost:8080/ready`
+- View logs: `docker compose logs -f api worker`
+- Stop stack: `docker compose down`
 
-- Visit `/#/editor` to open the new standalone editor. Existing routes and admin/public modules remain unchanged.
-- Photo canvas controls (brightness, contrast, sharpening and centered crop) and PNG/JPG export run in-browser. Background removal uses `@huggingface/transformers` with RMBG-1.4; the initial model download requires a network connection and may be large. Browser caching can avoid repeated downloads. It is not guaranteed to work offline before the model is cached or on browsers without suitable WASM/WebGPU support.
-- Video preview, aspect-ratio framing, trim controls and WebM recording use browser APIs. Browser canvas recording does not preserve original audio and is not an MP4 encoder; exported output is WebM. A production-grade MP4/audio-preserving pipeline would require a separately integrated browser encoder such as FFmpeg.wasm, with substantial download/performance costs.
-- Native `navigator.share()` is attempted on supported mobile browsers. Instagram/YouTube control the final upload/publish step; the editor does not use private APIs or publish directly to accounts. Desktop users can prepare metadata and download a file for manual upload.
-- The `/api/editor` endpoints require the existing JWT bearer token and persist only project/export metadata, never media bytes. Run the additive SQL migration in `database/migrations/` after checking your existing `Users` table naming.
-- Install frontend dependencies with `npm install` (the frontend lockfile was omitted because the new Transformers dependency could not be resolved in this offline environment; commit the generated lockfile after a network-enabled install) before running `npm run build`. Validate `npm run typecheck` and `npm run build` for the backend, and `npm run build` for the frontend in your deployment environment.
+---
+
+## CI/CD with GitHub Actions
+
+### Continuous Integration (`.github/workflows/ci.yml`)
+Triggered on pull requests and pushes to `main` and `develop`:
+1. **`backend-ci`:** Installs FFmpeg + Node 20, runs `npm ci`, `npm run lint`, `npm run build`, and `npm test` (Vitest + Supertest + FFmpeg pipeline tests).
+2. **`frontend-ci`:** Installs Node 20, runs `npm ci`, TypeScript typecheck, and `ng build --configuration production`.
+3. **`docker-build-validation`:** Validates `docker-compose.yml` and builds `api`, `worker`, and `web` Docker images with Buildx layer caching.
+
+### Continuous Deployment (`.github/workflows/cd.yml`)
+Triggered on pushes to `main`, semver tags (`v*.*.*`), or manual `workflow_dispatch`:
+1. Builds and pushes container images to GitHub Container Registry (`ghcr.io/<owner>/easecontent-{api,worker,web}`).
+2. Runs automated rollout when repository deployment secrets are configured:
+   - **SSH Compose Deploy:** `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, optional `DEPLOY_PATH` (default `/opt/easecontent`).
+   - **Webhook Deploy (alternative):** `DEPLOY_WEBHOOK_URL` and `DEPLOY_WEBHOOK_TOKEN`.
+   - **Optional Build Variable:** `PUBLIC_API_URL` (repository variable; leave empty when serving API via Nginx `/api`).

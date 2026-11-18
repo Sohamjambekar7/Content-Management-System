@@ -2,6 +2,7 @@ import { Component, EventEmitter, inject, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatToolbarModule } from '@angular/material/toolbar';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
@@ -10,7 +11,8 @@ import { AuthService } from '../../../../core/services/auth.service';
   imports: [
     MatToolbarModule,
     MatIconModule,
-    MatButtonModule
+    MatButtonModule,
+    RouterLink
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss'

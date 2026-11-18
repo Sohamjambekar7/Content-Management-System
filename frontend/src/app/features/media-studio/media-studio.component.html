@@ -1,0 +1,867 @@
+<div class="min-h-screen bg-slate-950 text-slate-100">
+  <!-- Top Studio Bar -->
+  <header class="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/95 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div class="flex items-center gap-3">
+        <a routerLink="/" class="flex items-center gap-2 text-lg font-extrabold tracking-tight text-white no-underline">
+          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-black text-white shadow">EC</span>
+          <span>EASE<span class="text-indigo-400">Content</span></span>
+        </a>
+        <span class="hidden rounded-full border border-indigo-500/30 bg-indigo-500/15 px-2.5 py-0.5 text-xs font-semibold text-indigo-300 sm:inline">
+          AI Creative Studio
+        </span>
+      </div>
+
+      <div class="flex flex-1 items-center justify-center gap-2 max-w-sm">
+        <input
+          type="text"
+          [(ngModel)]="projectName"
+          maxlength="160"
+          aria-label="Project title"
+          class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+          placeholder="Project name…"
+        />
+        <button
+          type="button"
+          (click)="saveStudioProject()"
+          class="shrink-0 rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700">
+          Save
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <span class="hidden rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1 text-xs text-slate-400 lg:inline" title="Logged-in EASEContent account">
+          {{ sessionEmail }}
+        </span>
+        <button
+          type="button"
+          (click)="openYouTubePublishModal()"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3.5 py-2 text-xs font-bold text-white shadow transition hover:bg-red-500">
+          <span>▶</span><span>Publish to YouTube</span>
+        </button>
+        <a
+          routerLink="/admin"
+          class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 no-underline transition hover:bg-slate-700">
+          Dashboard
+        </a>
+      </div>
+    </div>
+
+    <!-- Mode Switcher -->
+    <div class="mx-auto flex max-w-7xl items-center gap-2 border-t border-slate-800/80 px-4 py-2">
+      <button
+        type="button"
+        (click)="switchTab('photo')"
+        [class.bg-indigo-600]="activeTab === 'photo'"
+        [class.text-white]="activeTab === 'photo'"
+        [class.text-slate-400]="activeTab !== 'photo'"
+        class="rounded-lg px-4 py-1.5 text-xs font-bold transition hover:text-white">
+        ✦ Photo Editor
+      </button>
+      <button
+        type="button"
+        (click)="switchTab('video')"
+        [class.bg-indigo-600]="activeTab === 'video'"
+        [class.text-white]="activeTab === 'video'"
+        [class.text-slate-400]="activeTab !== 'video'"
+        class="rounded-lg px-4 py-1.5 text-xs font-bold transition hover:text-white">
+        ▶ Video &amp; AI Studio
+      </button>
+      <button
+        type="button"
+        (click)="switchTab('history')"
+        [class.bg-indigo-600]="activeTab === 'history'"
+        [class.text-white]="activeTab === 'history'"
+        [class.text-slate-400]="activeTab !== 'history'"
+        class="rounded-lg px-4 py-1.5 text-xs font-bold transition hover:text-white">
+        ◷ Jobs &amp; Publish History ({{ youtubeHistory.length + jobs.length }})
+      </button>
+    </div>
+  </header>
+
+  <!-- Global Notification Banner -->
+  <div *ngIf="bannerNotice" class="mx-auto max-w-7xl px-4 pt-4">
+    <div
+      class="flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-sm"
+      [ngClass]="{
+        'border-emerald-500/40 bg-emerald-500/10 text-emerald-200': bannerType === 'success',
+        'border-red-500/40 bg-red-500/10 text-red-200': bannerType === 'error',
+        'border-amber-500/40 bg-amber-500/10 text-amber-200': bannerType === 'warning',
+        'border-indigo-500/40 bg-indigo-500/10 text-indigo-200': bannerType === 'info'
+      }">
+      <span>{{ bannerNotice }}</span>
+      <button type="button" (click)="bannerNotice = ''" class="text-xs font-bold opacity-80 hover:opacity-100">✕</button>
+    </div>
+  </div>
+
+  <!-- ==================== PHOTO STUDIO ==================== -->
+  <main *ngIf="activeTab === 'photo'" class="mx-auto grid max-w-7xl gap-5 px-4 py-5 lg:grid-cols-[330px_1fr]">
+    <aside class="studio-panel space-y-5 overflow-y-auto max-h-[calc(100vh-11rem)]">
+      <div>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Source Photo</h2>
+        <input #photoInput type="file" accept="image/jpeg,image/png,image/webp" hidden (change)="onPhotoSelected($event)" />
+        <button
+          type="button"
+          (click)="photoInput.click()"
+          [disabled]="photoBusy"
+          class="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-500 disabled:opacity-50">
+          ＋ Upload Photo (JPG / PNG / WebP)
+        </button>
+      </div>
+
+      <!-- Crop & Transform -->
+      <div>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Crop &amp; Transform</h2>
+        <div class="grid grid-cols-3 gap-1.5 mb-3">
+          <button
+            *ngFor="let r of photoRatios"
+            type="button"
+            (click)="setPhotoRatio(r)"
+            [class.bg-indigo-600]="photoOpts.aspectRatio === r"
+            [class.border-indigo-500]="photoOpts.aspectRatio === r"
+            class="rounded-lg border border-slate-700 bg-slate-900 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-indigo-400">
+            {{ r }}
+          </button>
+        </div>
+        <label class="slider-label">
+          <span>Crop Zoom</span><span>{{ photoOpts.cropZoom }}%</span>
+        </label>
+        <input type="range" min="30" max="100" [(ngModel)]="photoOpts.cropZoom" (input)="applyPhotoAdjustments()" class="w-full accent-indigo-500" />
+        <div class="mt-2 grid grid-cols-4 gap-1.5">
+          <button type="button" (click)="rotatePhoto(-90)" [disabled]="!photoFile" class="mini-btn" title="Rotate Left">↺ 90°</button>
+          <button type="button" (click)="rotatePhoto(90)" [disabled]="!photoFile" class="mini-btn" title="Rotate Right">↻ 90°</button>
+          <button type="button" (click)="toggleFlip('h')" [disabled]="!photoFile" [class.active-btn]="photoOpts.flipH" class="mini-btn">⇄ Flip H</button>
+          <button type="button" (click)="toggleFlip('v')" [disabled]="!photoFile" [class.active-btn]="photoOpts.flipV" class="mini-btn">⇅ Flip V</button>
+        </div>
+      </div>
+
+      <!-- Tone & Color Adjustments -->
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Adjustments</h2>
+          <button type="button" (click)="resetPhotoAdjustments()" class="text-[11px] font-semibold text-indigo-400 hover:underline">Reset</button>
+        </div>
+        <div>
+          <label class="slider-label"><span>Brightness</span><span>{{ photoOpts.brightness }}</span></label>
+          <input type="range" min="-80" max="80" [(ngModel)]="photoOpts.brightness" (input)="applyPhotoAdjustments()" class="w-full accent-indigo-500" />
+        </div>
+        <div>
+          <label class="slider-label"><span>Contrast</span><span>{{ photoOpts.contrast }}</span></label>
+          <input type="range" min="-80" max="80" [(ngModel)]="photoOpts.contrast" (input)="applyPhotoAdjustments()" class="w-full accent-indigo-500" />
+        </div>
+        <div>
+          <label class="slider-label"><span>Saturation</span><span>{{ photoOpts.saturation }}</span></label>
+          <input type="range" min="-100" max="100" [(ngModel)]="photoOpts.saturation" (input)="applyPhotoAdjustments()" class="w-full accent-indigo-500" />
+        </div>
+        <div>
+          <label class="slider-label"><span>Exposure</span><span>{{ photoOpts.exposure }}</span></label>
+          <input type="range" min="-80" max="80" [(ngModel)]="photoOpts.exposure" (input)="applyPhotoAdjustments()" class="w-full accent-indigo-500" />
+        </div>
+        <div>
+          <label class="slider-label"><span>Sharpness</span><span>{{ photoOpts.sharpness }}%</span></label>
+          <input type="range" min="0" max="100" [(ngModel)]="photoOpts.sharpness" (input)="applyPhotoAdjustments()" class="w-full accent-indigo-500" />
+        </div>
+      </div>
+
+      <!-- Filters / LUTs -->
+      <div>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Filters &amp; LUTs</h2>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button
+            *ngFor="let preset of filterPresets"
+            type="button"
+            (click)="setPhotoFilter(preset.id)"
+            [class.bg-indigo-600]="photoOpts.filterPreset === preset.id"
+            [class.border-indigo-500]="photoOpts.filterPreset === preset.id"
+            class="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-indigo-400">
+            {{ preset.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Text & Overlays -->
+      <div class="space-y-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Text &amp; Overlays</h2>
+        <div class="flex gap-1.5">
+          <input
+            type="text"
+            [(ngModel)]="photoOpts.captionText"
+            placeholder="Overlay caption…"
+            class="w-full rounded-lg border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-white"
+          />
+          <input type="color" [(ngModel)]="photoOpts.captionColor" class="h-8 w-10 rounded border border-slate-700 bg-slate-900 p-0.5" title="Caption color" />
+        </div>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button type="button" (click)="addTextOverlay()" [disabled]="!photoFile" class="mini-btn">＋ Text</button>
+          <button type="button" (click)="addAccentShape()" [disabled]="!photoFile" class="mini-btn">◇ Shape</button>
+          <button type="button" (click)="deleteSelectedOverlay()" [disabled]="!photoFile" class="mini-btn text-red-300">⌫ Remove</button>
+        </div>
+      </div>
+
+      <!-- AI Photo Tools -->
+      <div class="space-y-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-indigo-300">✦ AI Enhancement Tools</h2>
+        <button type="button" (click)="applyAiBackgroundBlur()" [disabled]="!photoFile || photoBusy" class="ai-btn">
+          ◎ AI Portrait Background Blur
+        </button>
+        <button type="button" (click)="applyAiBackgroundRemoval()" [disabled]="!photoFile || photoBusy" class="ai-btn">
+          ✂ AI Background Removal (RMBG)
+        </button>
+        <button type="button" (click)="renderPhotoOnWorker(true)" [disabled]="!photoFile || photoBusy" class="ai-btn">
+          ✦ AI Smart Enhance (Async Worker)
+        </button>
+        <div *ngIf="photoAiProgress > 0 && photoAiProgress < 100" class="h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+          <div class="h-full bg-indigo-500 transition-all" [style.width.%]="photoAiProgress"></div>
+        </div>
+      </div>
+
+      <!-- Export Controls -->
+      <div class="space-y-2 border-t border-slate-800 pt-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Export Settings</h2>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button type="button" (click)="photoOpts.format = 'png'" [class.active-btn]="photoOpts.format === 'png'" class="mini-btn">PNG</button>
+          <button type="button" (click)="photoOpts.format = 'jpeg'" [class.active-btn]="photoOpts.format === 'jpeg'" class="mini-btn">JPEG</button>
+          <button type="button" (click)="photoOpts.format = 'webp'" [class.active-btn]="photoOpts.format === 'webp'" class="mini-btn">WebP</button>
+        </div>
+        <label class="slider-label"><span>Quality</span><span>{{ photoOpts.quality }}%</span></label>
+        <input type="range" min="50" max="100" [(ngModel)]="photoOpts.quality" class="w-full accent-indigo-500" />
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button type="button" (click)="exportPhotoInstant()" [disabled]="!photoFile || photoBusy" class="rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white hover:bg-emerald-500 disabled:opacity-40">
+            ↓ Instant Export
+          </button>
+          <button type="button" (click)="renderPhotoOnWorker(false)" [disabled]="!photoFile || photoBusy" class="rounded-xl border border-indigo-500 bg-indigo-500/20 py-2 text-xs font-bold text-indigo-200 hover:bg-indigo-500/30 disabled:opacity-40">
+            ⚙ Worker Render
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Photo Canvas Stage -->
+    <section class="studio-panel flex flex-col gap-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 class="text-sm font-bold text-white">Interactive Photo Canvas</h3>
+          <p class="text-xs text-slate-400">{{ photoStatus }}</p>
+        </div>
+        <div *ngIf="photoRenderJob" class="flex items-center gap-2 text-xs">
+          <span class="rounded-full bg-indigo-500/20 px-2.5 py-1 font-semibold text-indigo-300">
+            Worker: {{ photoRenderJob.stage }} ({{ photoRenderJob.progress }}%)
+          </span>
+        </div>
+      </div>
+
+      <div class="relative flex min-h-[540px] items-center justify-center overflow-auto rounded-2xl border border-slate-800 bg-slate-950 p-3">
+        <canvas #photoCanvas></canvas>
+      </div>
+
+      <!-- Server-Rendered Photo Preview Card -->
+      <div *ngIf="photoRenderedPreviewUrl && photoRenderJob" class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h4 class="text-sm font-bold text-emerald-200">Server-Rendered High-Res Output</h4>
+            <p class="text-xs text-emerald-300/80">
+              {{ photoRenderJob.width }}×{{ photoRenderJob.height }} · {{ formatBytes(photoRenderJob.fileSizeBytes) }}
+            </p>
+          </div>
+          <a
+            [href]="getJobDownloadUrl(photoRenderJob.id)"
+            class="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white no-underline hover:bg-emerald-500">
+            ↓ Download Rendered File
+          </a>
+        </div>
+        <img [src]="photoRenderedPreviewUrl" alt="Rendered output preview" class="max-h-72 rounded-xl border border-slate-800 object-contain" />
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== VIDEO & AI STUDIO ==================== -->
+  <main *ngIf="activeTab === 'video'" class="mx-auto grid max-w-7xl gap-5 px-4 py-5 lg:grid-cols-[350px_1fr]">
+    <aside class="studio-panel space-y-5 overflow-y-auto max-h-[calc(100vh-11rem)]">
+      <div>
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Source Video</h2>
+        <input #videoInput type="file" accept="video/mp4,video/webm,video/quicktime,video/*" hidden (change)="onVideoSelected($event)" />
+        <button
+          type="button"
+          (click)="videoInput.click()"
+          [disabled]="videoBusy"
+          class="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-500 disabled:opacity-50">
+          ＋ Upload Video (MP4 / WebM / MOV)
+        </button>
+      </div>
+
+      <!-- Framing & Aspect Ratio -->
+      <div class="space-y-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Aspect Ratio &amp; Framing</h2>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button
+            *ngFor="let r of videoRatios"
+            type="button"
+            (click)="videoOpts.aspectRatio = r"
+            [class.active-btn]="videoOpts.aspectRatio === r"
+            class="mini-btn">
+            {{ r === '9:16' ? '9:16 Shorts' : r === '16:9' ? '16:9 YT' : r }}
+          </button>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button type="button" (click)="videoOpts.fitMode = 'crop'" [class.active-btn]="videoOpts.fitMode === 'crop'" class="mini-btn">Fill / Smart Crop</button>
+          <button type="button" (click)="videoOpts.fitMode = 'pad'" [class.active-btn]="videoOpts.fitMode === 'pad'" class="mini-btn">Fit / Letterbox</button>
+        </div>
+      </div>
+
+      <!-- Trim, Speed & Transitions -->
+      <div class="space-y-2.5">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Timeline, Speed &amp; Transitions</h2>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="slider-label"><span>Start (s)</span><span>{{ videoOpts.startTime }}s</span></label>
+            <input type="number" min="0" [max]="videoDuration" step="0.1" [(ngModel)]="videoOpts.startTime" class="studio-input" />
+          </div>
+          <div>
+            <label class="slider-label"><span>End (s)</span><span>{{ videoOpts.endTime }}s</span></label>
+            <input type="number" min="0" [max]="videoDuration" step="0.1" [(ngModel)]="videoOpts.endTime" class="studio-input" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button type="button" (click)="setTrimPoint('start')" [disabled]="!videoFile" class="mini-btn">Set Start Here</button>
+          <button type="button" (click)="setTrimPoint('end')" [disabled]="!videoFile" class="mini-btn">Set End Here</button>
+        </div>
+        <div>
+          <label class="slider-label"><span>Playback Speed</span><span>{{ videoOpts.speed }}x</span></label>
+          <input type="range" min="0.5" max="2" step="0.25" [(ngModel)]="videoOpts.speed" (input)="syncPlayerAudio()" class="w-full accent-indigo-500" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="slider-label"><span>Fade In</span><span>{{ videoOpts.fadeInSeconds }}s</span></label>
+            <input type="range" min="0" max="3" step="0.25" [(ngModel)]="videoOpts.fadeInSeconds" class="w-full accent-indigo-500" />
+          </div>
+          <div>
+            <label class="slider-label"><span>Fade Out</span><span>{{ videoOpts.fadeOutSeconds }}s</span></label>
+            <input type="range" min="0" max="3" step="0.25" [(ngModel)]="videoOpts.fadeOutSeconds" class="w-full accent-indigo-500" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Audio Controls -->
+      <div class="space-y-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Audio &amp; Volume</h2>
+        <label class="slider-label"><span>Volume</span><span>{{ videoOpts.muted ? 'Muted' : videoOpts.volume + '%' }}</span></label>
+        <input type="range" min="0" max="200" [(ngModel)]="videoOpts.volume" (input)="syncPlayerAudio()" [disabled]="videoOpts.muted" class="w-full accent-indigo-500" />
+        <div class="flex items-center gap-4 text-xs text-slate-300">
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" [(ngModel)]="videoOpts.muted" (change)="syncPlayerAudio()" class="accent-indigo-500" />
+            <span>Mute audio</span>
+          </label>
+          <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" [(ngModel)]="videoOpts.normalizeAudio" class="accent-indigo-500" />
+            <span>Auto-normalize</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Video Filters / LUTs -->
+      <div class="space-y-2">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400">Color &amp; LUT Presets</h2>
+        <div class="grid grid-cols-2 gap-1.5">
+          <button
+            *ngFor="let preset of filterPresets"
+            type="button"
+            (click)="videoOpts.filterPreset = preset.id"
+            [class.active-btn]="videoOpts.filterPreset === preset.id"
+            class="mini-btn">
+            {{ preset.label }}
+          </button>
+        </div>
+        <label class="slider-label"><span>Brightness</span><span>{{ videoOpts.brightness }}</span></label>
+        <input type="range" min="-60" max="60" [(ngModel)]="videoOpts.brightness" class="w-full accent-indigo-500" />
+        <label class="slider-label"><span>Contrast</span><span>{{ videoOpts.contrast }}</span></label>
+        <input type="range" min="-60" max="60" [(ngModel)]="videoOpts.contrast" class="w-full accent-indigo-500" />
+        <label class="slider-label"><span>Saturation</span><span>{{ videoOpts.saturation }}</span></label>
+        <input type="range" min="-100" max="100" [(ngModel)]="videoOpts.saturation" class="w-full accent-indigo-500" />
+      </div>
+
+      <!-- AI Video Helpers -->
+      <div class="space-y-2 border-t border-slate-800 pt-3">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-indigo-300">✦ AI Video Assistants</h2>
+        <button type="button" (click)="runAiVideoHelper('smart-trim')" [disabled]="!videoFile || aiVideoBusy" class="ai-btn">
+          ✂ AI Smart Trim (Silence Removal)
+        </button>
+        <button type="button" (click)="runAiVideoHelper('highlights')" [disabled]="!videoFile || aiVideoBusy" class="ai-btn">
+          ★ AI Highlight Finder (Scene Detection)
+        </button>
+        <button type="button" (click)="runAiVideoHelper('auto-caption')" [disabled]="!videoFile || aiVideoBusy" class="ai-btn">
+          💬 AI Auto-Captions &amp; Metadata
+        </button>
+
+        <div *ngIf="aiVideoBusy" class="space-y-1 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-2.5 text-xs text-indigo-200">
+          <div class="flex justify-between"><span>{{ aiVideoStage }}</span><span>{{ aiVideoProgress }}%</span></div>
+          <div class="h-1.5 overflow-hidden rounded-full bg-slate-800">
+            <div class="h-full bg-indigo-500 transition-all" [style.width.%]="aiVideoProgress"></div>
+          </div>
+        </div>
+        <p *ngIf="aiVideoSummary && !aiVideoBusy" class="rounded-xl border border-slate-700 bg-slate-950 p-2.5 text-xs text-slate-300">
+          {{ aiVideoSummary }}
+        </p>
+
+        <div *ngIf="aiHighlights.length > 0" class="space-y-1.5">
+          <p class="text-[11px] font-semibold uppercase text-slate-400">Suggested Highlights (click to apply)</p>
+          <button
+            *ngFor="let clip of aiHighlights"
+            type="button"
+            (click)="applyHighlightRange(clip)"
+            class="flex w-full items-center justify-between rounded-lg border border-indigo-500/30 bg-slate-900 px-2.5 py-1.5 text-xs text-indigo-200 hover:bg-indigo-500/20">
+            <span>{{ clip.label }}</span>
+            <span>{{ clip.start }}s – {{ clip.end }}s</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Video Preview, Subtitles & Render Stage -->
+    <section class="space-y-5">
+      <div class="studio-panel space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-sm font-bold text-white">Video Preview &amp; Timeline</h3>
+            <p class="text-xs text-slate-400">{{ videoStatus }}</p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              (click)="renderVideoOnWorker()"
+              [disabled]="!videoFile || videoBusy"
+              class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow transition hover:bg-indigo-500 disabled:opacity-40">
+              {{ videoBusy ? 'Rendering MP4…' : '⚙ Render Video (Async MP4)' }}
+            </button>
+            <button
+              type="button"
+              (click)="openYouTubePublishModal()"
+              [disabled]="!videoFile && !videoRenderedPreviewUrl"
+              class="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white shadow transition hover:bg-red-500 disabled:opacity-40">
+              ▶ Publish to YouTube
+            </button>
+          </div>
+        </div>
+
+        <!-- Video Preview Stage -->
+        <div class="relative flex min-h-[360px] items-center justify-center overflow-hidden rounded-2xl border border-slate-800 bg-black">
+          <div *ngIf="!videoPreviewUrl" class="text-center p-8 text-slate-400">
+            <div class="text-4xl mb-2">🎬</div>
+            <p class="text-sm font-semibold text-slate-200">Drop or upload a video to begin</p>
+            <p class="text-xs mt-1">Trim, reframe for YouTube or Shorts, burn captions, and render with FFmpeg.</p>
+          </div>
+
+          <div *ngIf="videoPreviewUrl" class="relative w-full flex justify-center">
+            <video
+              #videoPlayer
+              [src]="videoPreviewUrl"
+              controls
+              playsinline
+              (loadedmetadata)="onVideoMetadataLoaded(videoPlayer)"
+              (timeupdate)="onVideoTimeUpdate(videoPlayer)"
+              [style.filter]="liveVideoCssFilter"
+              class="max-h-[420px] max-w-full rounded-lg">
+            </video>
+
+            <!-- Live Subtitle Overlay Preview -->
+            <div
+              *ngIf="activeSubtitleText"
+              class="pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-lg bg-black/75 px-4 py-1.5 text-center text-sm font-bold text-white shadow"
+              [ngClass]="{
+                'top-4': videoOpts.subtitlePosition === 'top',
+                'top-1/2 -translate-y-1/2': videoOpts.subtitlePosition === 'center',
+                'bottom-14': videoOpts.subtitlePosition === 'bottom'
+              }">
+              {{ activeSubtitleText }}
+            </div>
+
+            <span class="pointer-events-none absolute right-3 top-3 rounded-md bg-black/70 px-2 py-0.5 text-[11px] font-bold text-indigo-300">
+              Target: {{ videoOpts.aspectRatio }} · {{ videoOpts.fitMode }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Visual Trim Range Bar -->
+        <div *ngIf="videoDuration > 0" class="rounded-xl border border-slate-800 bg-slate-950 p-3 space-y-2">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Playhead: <strong class="text-white">{{ videoCurrentTime }}s</strong></span>
+            <span>Clip Length: <strong class="text-indigo-300">{{ (videoOpts.endTime - videoOpts.startTime) | number:'1.1-1' }}s</strong> / {{ videoDuration }}s</span>
+          </div>
+          <div class="relative h-3 w-full rounded-full bg-slate-800 overflow-hidden">
+            <div
+              class="absolute top-0 bottom-0 bg-indigo-500/70"
+              [style.left.%]="(videoOpts.startTime / videoDuration) * 100"
+              [style.width.%]="((videoOpts.endTime - videoOpts.startTime) / videoDuration) * 100">
+            </div>
+            <div
+              class="absolute top-0 bottom-0 w-0.5 bg-white"
+              [style.left.%]="(videoCurrentTime / videoDuration) * 100">
+            </div>
+          </div>
+        </div>
+
+        <!-- Async Render Job Progress & Rendered MP4 Preview -->
+        <div *ngIf="videoRenderJob" class="rounded-2xl border border-slate-700 bg-slate-950 p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-400">Async Worker Render</span>
+              <p class="text-sm font-semibold text-white">{{ videoRenderJob.stage }}</p>
+            </div>
+            <span
+              class="rounded-full px-3 py-1 text-xs font-bold"
+              [ngClass]="{
+                'bg-emerald-500/20 text-emerald-300': videoRenderJob.status === 'completed',
+                'bg-red-500/20 text-red-300': videoRenderJob.status === 'failed',
+                'bg-indigo-500/20 text-indigo-300': videoRenderJob.status === 'queued' || videoRenderJob.status === 'processing'
+              }">
+              {{ videoRenderJob.status | uppercase }} · {{ videoRenderJob.progress }}%
+            </span>
+          </div>
+
+          <div class="h-2 w-full overflow-hidden rounded-full bg-slate-800">
+            <div
+              class="h-full transition-all duration-300"
+              [ngClass]="videoRenderJob.status === 'failed' ? 'bg-red-500' : videoRenderJob.status === 'completed' ? 'bg-emerald-500' : 'bg-indigo-500'"
+              [style.width.%]="videoRenderJob.progress">
+            </div>
+          </div>
+
+          <p *ngIf="videoRenderJob.errorMessage" class="text-xs text-red-300">{{ videoRenderJob.errorMessage }}</p>
+
+          <div *ngIf="videoRenderedPreviewUrl && videoRenderJob.status === 'completed'" class="space-y-3 pt-2 border-t border-slate-800">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="text-xs text-slate-300">
+                Ready for preview &amp; publishing:
+                <strong>{{ videoRenderJob.width }}×{{ videoRenderJob.height }}</strong> ·
+                <strong>{{ videoRenderJob.durationSeconds }}s</strong> ·
+                <strong>{{ formatBytes(videoRenderJob.fileSizeBytes) }}</strong>
+              </div>
+              <div class="flex gap-2">
+                <a
+                  [href]="getJobDownloadUrl(videoRenderJob.id)"
+                  class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-white no-underline hover:bg-slate-700">
+                  ↓ Download MP4
+                </a>
+                <button
+                  type="button"
+                  (click)="openYouTubePublishModal()"
+                  class="rounded-xl bg-red-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-red-500">
+                  ▶ Upload Rendered MP4 to YouTube
+                </button>
+              </div>
+            </div>
+            <video [src]="videoRenderedPreviewUrl" controls playsinline class="max-h-72 w-full rounded-xl bg-black"></video>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtitles & Captions Overlay Editor -->
+      <div class="studio-panel space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-bold text-white">Subtitles &amp; Captions Overlay</h3>
+            <p class="text-xs text-slate-400">Timed captions preview live and burn directly into your rendered MP4.</p>
+          </div>
+          <div class="flex items-center gap-1.5 text-xs">
+            <span class="text-slate-400">Position:</span>
+            <button type="button" (click)="videoOpts.subtitlePosition = 'top'" [class.active-btn]="videoOpts.subtitlePosition === 'top'" class="mini-btn !px-2">Top</button>
+            <button type="button" (click)="videoOpts.subtitlePosition = 'center'" [class.active-btn]="videoOpts.subtitlePosition === 'center'" class="mini-btn !px-2">Center</button>
+            <button type="button" (click)="videoOpts.subtitlePosition = 'bottom'" [class.active-btn]="videoOpts.subtitlePosition === 'bottom'" class="mini-btn !px-2">Bottom</button>
+          </div>
+        </div>
+
+        <div class="flex gap-2">
+          <input
+            type="text"
+            [(ngModel)]="newSubtitleText"
+            (keyup.enter)="addSubtitleCue()"
+            placeholder="Type a caption cue at current playhead ({{ videoCurrentTime }}s)…"
+            class="studio-input flex-1"
+          />
+          <button type="button" (click)="addSubtitleCue()" class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white hover:bg-indigo-500">
+            ＋ Add Cue
+          </button>
+        </div>
+
+        <div *ngIf="videoOpts.subtitles.length > 0" class="space-y-2 max-h-48 overflow-y-auto">
+          <div
+            *ngFor="let cue of videoOpts.subtitles; let i = index"
+            class="grid grid-cols-[72px_72px_1fr_auto] items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 p-2">
+            <input type="number" step="0.1" min="0" [(ngModel)]="cue.start" class="studio-input !py-1 text-xs" />
+            <input type="number" step="0.1" min="0.1" [(ngModel)]="cue.end" class="studio-input !py-1 text-xs" />
+            <input type="text" [(ngModel)]="cue.text" class="studio-input !py-1 text-xs" />
+            <button type="button" (click)="removeSubtitleCue(i)" class="text-xs font-bold text-red-400 px-2 hover:text-red-300">✕</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== HISTORY TAB ==================== -->
+  <main *ngIf="activeTab === 'history'" class="mx-auto max-w-7xl space-y-6 px-4 py-6">
+    <!-- YouTube Publish History -->
+    <section class="studio-panel space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white">YouTube Publish History</h2>
+          <p class="text-xs text-slate-400">Videos published from EASEContent under {{ sessionEmail }}</p>
+        </div>
+        <button type="button" (click)="loadWorkspaceHistory()" class="mini-btn !px-3">↻ Refresh</button>
+      </div>
+
+      <div *ngIf="youtubeHistory.length === 0" class="rounded-xl border border-slate-800 bg-slate-950 p-6 text-center text-xs text-slate-400">
+        No YouTube uploads recorded yet. Edit a video and click "Publish to YouTube".
+      </div>
+
+      <div *ngIf="youtubeHistory.length > 0" class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="border-b border-slate-800 text-slate-400 uppercase">
+            <tr>
+              <th class="py-2 pr-3">Title</th>
+              <th class="py-2 pr-3">Channel / Email</th>
+              <th class="py-2 pr-3">Privacy</th>
+              <th class="py-2 pr-3">Status</th>
+              <th class="py-2 pr-3">Date</th>
+              <th class="py-2">Link</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/70">
+            <tr *ngFor="let rec of youtubeHistory">
+              <td class="py-2.5 pr-3 font-semibold text-white">{{ rec.title }}</td>
+              <td class="py-2.5 pr-3 text-slate-300">{{ rec.channelTitle || rec.userEmail }}</td>
+              <td class="py-2.5 pr-3 capitalize text-slate-300">{{ rec.privacyStatus }}</td>
+              <td class="py-2.5 pr-3">
+                <span
+                  class="rounded-full px-2 py-0.5 font-bold"
+                  [ngClass]="rec.status === 'published' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'">
+                  {{ rec.status }}
+                </span>
+              </td>
+              <td class="py-2.5 pr-3 text-slate-400">{{ rec.createdAt | date:'short' }}</td>
+              <td class="py-2.5">
+                <a *ngIf="rec.videoUrl" [href]="rec.videoUrl" target="_blank" rel="noopener" class="font-bold text-indigo-400 hover:underline">
+                  Watch on YouTube ↗
+                </a>
+                <span *ngIf="!rec.videoUrl" class="text-slate-500">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Background Render Jobs -->
+    <section class="studio-panel space-y-3">
+      <h2 class="text-base font-bold text-white">Recent Background Render &amp; AI Jobs</h2>
+      <div *ngIf="jobs.length === 0" class="rounded-xl border border-slate-800 bg-slate-950 p-6 text-center text-xs text-slate-400">
+        No background media jobs yet.
+      </div>
+      <div *ngIf="jobs.length > 0" class="grid gap-3 md:grid-cols-2">
+        <div *ngFor="let job of jobs" class="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3.5 text-xs">
+          <div>
+            <p class="font-bold text-white">{{ job.originalFileName || job.jobType }}</p>
+            <p class="text-slate-400">{{ job.jobType }} · {{ job.stage }} ({{ job.progress }}%)</p>
+            <p class="text-[11px] text-slate-500">{{ job.createdAt | date:'short' }} · {{ formatBytes(job.fileSizeBytes) }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <a
+              *ngIf="job.status === 'completed' && job.outputUrl"
+              [href]="getJobDownloadUrl(job.id)"
+              class="rounded-lg bg-indigo-600 px-2.5 py-1.5 font-bold text-white no-underline hover:bg-indigo-500">
+              ↓ File
+            </a>
+            <span
+              class="rounded-full px-2 py-0.5 font-bold"
+              [ngClass]="job.status === 'completed' ? 'bg-emerald-500/20 text-emerald-300' : job.status === 'failed' ? 'bg-red-500/20 text-red-300' : 'bg-indigo-500/20 text-indigo-300'">
+              {{ job.status }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==================== PUBLISH TO YOUTUBE MODAL ==================== -->
+  <div *ngIf="showYouTubeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+    <div class="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl space-y-5">
+      <div class="flex items-start justify-between gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-red-400">YouTube Data API v3</span>
+          <h2 class="text-xl font-extrabold text-white">Publish Video to YouTube</h2>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Bound strictly to your logged-in EASEContent email: <strong class="text-slate-200">{{ sessionEmail }}</strong>
+          </p>
+        </div>
+        <button type="button" (click)="closeYouTubeModal()" [disabled]="youtubeUploading" class="rounded-lg bg-slate-800 px-2.5 py-1 text-sm text-slate-300 hover:bg-slate-700">✕</button>
+      </div>
+
+      <!-- Account Verification Card -->
+      <div
+        class="rounded-xl border p-4 text-xs space-y-3"
+        [ngClass]="{
+          'border-emerald-500/40 bg-emerald-500/10': youtubeStatus?.connected,
+          'border-red-500/40 bg-red-500/10': youtubeStatus?.status === 'mismatch',
+          'border-amber-500/40 bg-amber-500/10': !youtubeStatus?.connected && youtubeStatus?.status !== 'mismatch'
+        }">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p class="font-bold text-sm text-white">
+              {{ checkingYouTube ? 'Verifying YouTube account…' : youtubeStatus?.connected ? '✓ YouTube Verified & Connected' : youtubeStatus?.status === 'mismatch' ? '⚠ Account Email Mismatch' : 'YouTube Authorization Required' }}
+            </p>
+            <p *ngIf="youtubeStatus?.connected" class="text-emerald-200 mt-0.5">
+              Uploading to <strong>{{ youtubeStatus?.channelTitle || 'Your YouTube Channel' }}</strong> ({{ youtubeStatus?.connectedEmail }})
+            </p>
+            <p *ngIf="!youtubeStatus?.connected && youtubeStatus?.reason" class="text-slate-200 mt-0.5">
+              {{ youtubeStatus?.reason }}
+            </p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              (click)="connectYouTubeAccount()"
+              [disabled]="connectingYouTube || checkingYouTube"
+              class="rounded-xl bg-red-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-red-500 disabled:opacity-50">
+              {{ connectingYouTube ? 'Redirecting…' : youtubeStatus?.connected ? 'Re-authorize' : 'Connect YouTube (' + sessionEmail + ')' }}
+            </button>
+            <button
+              *ngIf="youtubeStatus?.connected"
+              type="button"
+              (click)="disconnectYouTubeAccount()"
+              class="rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700">
+              Disconnect
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Source Selector -->
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <button
+          type="button"
+          (click)="youtubeSourceMode = 'rendered'"
+          [disabled]="videoRenderJob?.status !== 'completed'"
+          [ngClass]="youtubeSourceMode === 'rendered' ? 'border-indigo-500 bg-indigo-500/15' : 'border-slate-700 bg-slate-950'"
+          class="rounded-xl border p-3 text-left transition disabled:opacity-40">
+          <span class="block font-bold text-white">Rendered Studio MP4</span>
+          <span class="block text-[11px] text-slate-400">
+            {{ videoRenderJob?.status === 'completed' ? 'Ready (' + formatBytes(videoRenderJob?.fileSizeBytes) + ')' : 'Render video first to include trims & captions' }}
+          </span>
+        </button>
+        <button
+          type="button"
+          (click)="youtubeSourceMode = 'original'"
+          [disabled]="!videoFile"
+          [ngClass]="youtubeSourceMode === 'original' ? 'border-indigo-500 bg-indigo-500/15' : 'border-slate-700 bg-slate-950'"
+          class="rounded-xl border p-3 text-left transition disabled:opacity-40">
+          <span class="block font-bold text-white">Uploaded Video File</span>
+          <span class="block text-[11px] text-slate-400">{{ videoFile ? videoFile.name : 'No video file selected yet' }}</span>
+        </button>
+      </div>
+
+      <!-- Publish Form -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Video Details</span>
+          <button
+            type="button"
+            (click)="generateAiYouTubeCopy()"
+            [disabled]="generatingAiCopy"
+            class="rounded-lg border border-indigo-500/40 bg-indigo-500/15 px-3 py-1 text-xs font-semibold text-indigo-300 hover:bg-indigo-500/25">
+            {{ generatingAiCopy ? 'Drafting…' : '✦ AI Suggest Title & Caption' }}
+          </button>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <label for="ytModalTitle" class="font-bold text-slate-200">Video Title <span class="text-red-400">*</span></label>
+            <span [class.text-red-400]="youtubeTitle.length > 100" class="text-slate-400">{{ youtubeTitle.length }}/100</span>
+          </div>
+          <input
+            id="ytModalTitle"
+            type="text"
+            [(ngModel)]="youtubeTitle"
+            maxlength="100"
+            placeholder="Enter a compelling YouTube title…"
+            class="studio-input"
+          />
+          <p *ngIf="!youtubeTitle.trim()" class="mt-1 text-[11px] text-amber-300">Video title is required before uploading.</p>
+        </div>
+
+        <div>
+          <div class="flex justify-between text-xs mb-1">
+            <label for="ytModalDesc" class="font-bold text-slate-200">Caption / Description</label>
+            <span class="text-slate-400">{{ youtubeDescription.length }}/5000</span>
+          </div>
+          <textarea
+            id="ytModalDesc"
+            rows="5"
+            [(ngModel)]="youtubeDescription"
+            maxlength="5000"
+            placeholder="Write your multi-line YouTube caption, description, links, and #hashtags…"
+            class="studio-input resize-y"></textarea>
+          <div class="mt-1.5 flex flex-wrap gap-1.5">
+            <button
+              *ngFor="let tag of quickHashtags"
+              type="button"
+              (click)="appendHashtag(tag)"
+              class="rounded-full border border-slate-700 bg-slate-800 px-2.5 py-0.5 text-[11px] text-indigo-300 hover:border-indigo-500">
+              ＋ {{ tag }}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label for="ytModalPrivacy" class="block text-xs font-bold text-slate-200 mb-1">Visibility</label>
+          <select id="ytModalPrivacy" [(ngModel)]="youtubePrivacy" class="studio-input">
+            <option value="private">Private — only you can view</option>
+            <option value="unlisted">Unlisted — anyone with the link</option>
+            <option value="public">Public — visible to everyone on YouTube</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Upload Progress & Result -->
+      <div *ngIf="youtubeUploading" class="space-y-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3 text-xs">
+        <div class="flex justify-between text-indigo-200">
+          <span>Uploading video to YouTube Data API v3…</span>
+          <span>{{ youtubeUploadProgress }}%</span>
+        </div>
+        <div class="h-2 overflow-hidden rounded-full bg-slate-800">
+          <div class="h-full bg-red-500 transition-all" [style.width.%]="youtubeUploadProgress"></div>
+        </div>
+      </div>
+
+      <div *ngIf="youtubeUploadError" class="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-200">
+        {{ youtubeUploadError }}
+      </div>
+
+      <div *ngIf="youtubeUploadResult" class="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 space-y-2 text-xs">
+        <p class="font-bold text-sm text-emerald-200">✓ Uploaded to YouTube &amp; saved to EASEContent history!</p>
+        <p class="text-slate-200">
+          Channel: <strong>{{ youtubeUploadResult.channelTitle || sessionEmail }}</strong> ·
+          Visibility: <strong class="capitalize">{{ youtubeUploadResult.privacyStatus }}</strong>
+        </p>
+        <a
+          *ngIf="youtubeUploadResult.videoUrl"
+          [href]="youtubeUploadResult.videoUrl"
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 font-bold text-white no-underline hover:bg-emerald-500">
+          Open on YouTube ↗
+        </a>
+      </div>
+
+      <div class="flex justify-end gap-2 border-t border-slate-800 pt-4">
+        <button type="button" (click)="closeYouTubeModal()" [disabled]="youtubeUploading" class="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700">
+          Close
+        </button>
+        <button
+          type="button"
+          (click)="publishToYouTube()"
+          [disabled]="!canPublishVideoToYouTube"
+          class="rounded-xl bg-red-600 px-5 py-2 text-xs font-bold text-white shadow transition hover:bg-red-500 disabled:opacity-40">
+          {{ youtubeUploading ? 'Uploading…' : '▶ Upload to YouTube' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

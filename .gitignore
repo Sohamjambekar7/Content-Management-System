@@ -1,8 +1,9 @@
-**/node_modules/
-**/dist/
-**/.angular/
-**/.env
-**/*.log
-coverage/
-.DS_Store
+node_modules/
+dist/
 .env
+backend/.env
+backend/storage/
+backend/uploads/
+*.log
+.DS_Store
+Thumbs.db

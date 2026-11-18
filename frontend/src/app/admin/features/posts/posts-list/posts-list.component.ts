@@ -1,104 +1,162 @@
-
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
+import { HttpEventType } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs/operators';
+import { AuthService } from '../../../../core/services/auth.service';
+import { PostService } from '../../../../core/services/post.service';
+import { IPost } from '../../../../core/interfaces/models/post.model.interface';
 import {
+  YouTubePublishRecord,
   YouTubeService,
-  YouTubeStatus
+  YouTubeStatus,
 } from '../../../../services/youtube.service';
 
-/**
- * Social publishing UI for the existing /admin/posts route.
- * YouTube OAuth and video uploads use the backend /api/youtube routes.
- */
 @Component({
   selector: 'app-posts-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './posts-list.component.html',
-  styleUrl: './posts-list.component.scss'
+  styleUrl: './posts-list.component.scss',
 })
 export class PostsListComponent implements OnInit, OnDestroy {
-  private readonly publishEndpoint = '/api/social-publishing/publish';
+  readonly authService = inject(AuthService);
+  private readonly postService = inject(PostService);
+  private readonly youtubeService = inject(YouTubeService);
 
+  activeSection: 'posts' | 'publisher' = 'posts';
+
+  // CMS Posts
+  posts: IPost[] = [];
+  loadingPosts = false;
+
+  // Quick YouTube Publisher
   selectedFile: File | null = null;
   previewUrl: string | null = null;
-
-  caption = '';
   youtubeTitle = '';
   youtubeDescription = '';
   youtubePrivacy: 'private' | 'unlisted' | 'public' = 'private';
 
-  publishInstagram = true;
-  publishYouTube = false;
-
   busy = false;
+  uploadProgress = 0;
   status: 'idle' | 'success' | 'error' | 'info' = 'idle';
   statusMessage = '';
 
-  youtubeConnected = false;
+  youtubeStatus: YouTubeStatus | null = null;
   checkingYouTube = false;
+  connectingYouTube = false;
+  youtubeHistory: YouTubePublishRecord[] = [];
 
   private objectUrl: string | null = null;
 
-  constructor(
-    private readonly http: HttpClient,
-    private readonly youtubeService: YouTubeService
-  ) {}
+  get sessionEmail(): string {
+    return this.authService.session?.user?.email || '';
+  }
 
-  ngOnInit(): void {
-    this.checkYouTubeStatus();
-
-    // Restore saved form fields if a draft exists.
-    this.loadDraft();
+  get youtubeConnected(): boolean {
+    return Boolean(this.youtubeStatus?.connected);
   }
 
   get isVideo(): boolean {
-    return !!this.selectedFile?.type.startsWith('video/');
-  }
-
-  get isImage(): boolean {
-    return !!this.selectedFile?.type.startsWith('image/');
+    return Boolean(this.selectedFile?.type.startsWith('video/'));
   }
 
   get canSubmit(): boolean {
-    return !!this.selectedFile &&
-      (this.publishInstagram || this.publishYouTube) &&
-      !this.busy &&
-      (this.isImage || this.isVideo);
+    return (
+      Boolean(this.selectedFile) &&
+      this.isVideo &&
+      this.youtubeConnected &&
+      this.youtubeTitle.trim().length > 0 &&
+      this.youtubeTitle.trim().length <= 100 &&
+      !this.busy
+    );
+  }
+
+  ngOnInit(): void {
+    this.loadPosts();
+    this.checkYouTubeStatus();
+    this.loadYouTubeHistory();
+    this.loadDraft();
+  }
+
+  loadPosts(): void {
+    this.loadingPosts = true;
+    this.postService
+      .getPosts({ mine: true })
+      .pipe(finalize(() => (this.loadingPosts = false)))
+      .subscribe({
+        next: (posts) => (this.posts = posts),
+        error: () => undefined,
+      });
+  }
+
+  deletePost(id: number): void {
+    if (!confirm('Delete this post permanently?')) return;
+    this.postService.deletePost(id).subscribe({
+      next: () => {
+        this.posts = this.posts.filter((p) => p.id !== id);
+      },
+      error: (err) => {
+        this.setStatus('error', err?.error?.message || 'Could not delete post.');
+      },
+    });
   }
 
   checkYouTubeStatus(): void {
     this.checkingYouTube = true;
-
-    this.youtubeService.getStatus()
-      .pipe(finalize(() => {
-        this.checkingYouTube = false;
-      }))
+    this.youtubeService
+      .getStatus()
+      .pipe(finalize(() => (this.checkingYouTube = false)))
       .subscribe({
-        next: (status: YouTubeStatus) => {
-          this.youtubeConnected = status.connected;
+        next: (status) => {
+          this.youtubeStatus = status;
         },
         error: () => {
-          this.youtubeConnected = false;
-          this.setStatus(
-            'error',
-            'Could not check YouTube connection. Make sure the backend is running.'
-          );
-        }
+          this.youtubeStatus = null;
+          this.setStatus('error', 'Could not verify YouTube connection status.');
+        },
       });
   }
 
+  loadYouTubeHistory(): void {
+    this.youtubeService.getHistory().subscribe({
+      next: (res) => (this.youtubeHistory = res.history || []),
+      error: () => undefined,
+    });
+  }
+
   connectYouTube(): void {
-    this.youtubeService.connect();
+    this.connectingYouTube = true;
+    this.youtubeService
+      .requestConnectUrl('/admin/posts')
+      .pipe(finalize(() => (this.connectingYouTube = false)))
+      .subscribe({
+        next: ({ authUrl }) => {
+          window.location.href = authUrl;
+        },
+        error: (err) => {
+          this.setStatus(
+            'error',
+            err?.error?.message || 'Unable to start YouTube OAuth authorization.'
+          );
+        },
+      });
+  }
+
+  disconnectYouTube(): void {
+    this.youtubeService.disconnect().subscribe({
+      next: () => {
+        this.checkYouTubeStatus();
+        this.setStatus('info', 'YouTube account disconnected.');
+      },
+      error: () => undefined,
+    });
   }
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
-
     this.clearPreview();
 
     if (!file) {
@@ -106,252 +164,94 @@ export class PostsListComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!file.type.startsWith('image/') &&
-        !file.type.startsWith('video/')) {
+    if (!file.type.startsWith('video/')) {
       this.selectedFile = null;
       input.value = '';
-      this.setStatus('error', 'Choose an image or video file.');
+      this.setStatus('error', 'Choose a video file (MP4, WebM, or MOV) for YouTube upload.');
       return;
     }
 
     this.selectedFile = file;
     this.objectUrl = URL.createObjectURL(file);
     this.previewUrl = this.objectUrl;
-
     if (!this.youtubeTitle) {
-      this.youtubeTitle = file.name
-        .replace(/\.[^.]+$/, '')
-        .slice(0, 100);
+      this.youtubeTitle = file.name.replace(/\.[^.]+$/, '').slice(0, 100);
     }
-
     this.setStatus('idle', '');
   }
 
-  async saveDraft(): Promise<void> {
-    const draft = {
-      caption: this.caption,
-      youtubeTitle: this.youtubeTitle,
-      youtubeDescription: this.youtubeDescription,
-      youtubePrivacy: this.youtubePrivacy,
-      publishInstagram: this.publishInstagram,
-      publishYouTube: this.publishYouTube,
-      fileName: this.selectedFile?.name ?? null,
-      savedAt: new Date().toISOString()
-    };
-
+  saveDraft(): void {
     try {
       localStorage.setItem(
-        'cms-social-publisher-draft',
-        JSON.stringify(draft)
+        'easecontent-youtube-draft',
+        JSON.stringify({
+          youtubeTitle: this.youtubeTitle,
+          youtubeDescription: this.youtubeDescription,
+          youtubePrivacy: this.youtubePrivacy,
+        })
       );
-
-      this.setStatus(
-        'success',
-        'Draft saved in this browser. The media file itself is not saved in the draft.'
-      );
+      this.setStatus('success', 'Draft saved locally in this browser.');
     } catch {
-      this.setStatus(
-        'error',
-        'Could not save the draft in this browser.'
-      );
+      this.setStatus('error', 'Could not save draft.');
     }
   }
 
   loadDraft(): void {
     try {
-      const raw = localStorage.getItem('cms-social-publisher-draft');
-
-      if (!raw) {
-        return;
-      }
-
+      const raw = localStorage.getItem('easecontent-youtube-draft');
+      if (!raw) return;
       const draft = JSON.parse(raw);
-
-      this.caption =
-        typeof draft.caption === 'string' ? draft.caption : '';
-
-      this.youtubeTitle =
-        typeof draft.youtubeTitle === 'string'
-          ? draft.youtubeTitle
-          : '';
-
-      this.youtubeDescription =
-        typeof draft.youtubeDescription === 'string'
-          ? draft.youtubeDescription
-          : '';
-
-      this.youtubePrivacy = [
-        'private',
-        'unlisted',
-        'public'
-      ].includes(draft.youtubePrivacy)
-        ? draft.youtubePrivacy
-        : 'private';
-
-      this.publishInstagram = draft.publishInstagram !== false;
-      this.publishYouTube = draft.publishYouTube === true;
+      if (typeof draft.youtubeTitle === 'string') this.youtubeTitle = draft.youtubeTitle;
+      if (typeof draft.youtubeDescription === 'string') {
+        this.youtubeDescription = draft.youtubeDescription;
+      }
+      if (['private', 'unlisted', 'public'].includes(draft.youtubePrivacy)) {
+        this.youtubePrivacy = draft.youtubePrivacy;
+      }
     } catch {
-      this.setStatus('error', 'The saved draft could not be read.');
+      // ignore invalid draft
     }
   }
 
   publish(): void {
     if (!this.canSubmit || !this.selectedFile) {
-      this.setStatus(
-        'error',
-        'Select an image or video and at least one destination before publishing.'
-      );
-      return;
-    }
-
-    if (this.publishInstagram && !this.isImage && !this.isVideo) {
-      this.setStatus(
-        'error',
-        'Instagram requires a supported image or video.'
-      );
-      return;
-    }
-
-    if (this.publishYouTube && !this.isVideo) {
-      this.setStatus(
-        'error',
-        'YouTube publishing requires a video file.'
-      );
-      return;
-    }
-
-    if (this.publishYouTube && !this.youtubeTitle.trim()) {
-      this.setStatus('error', 'Enter a YouTube video title.');
-      return;
-    }
-
-    if (this.publishYouTube && !this.youtubeConnected) {
-      this.setStatus(
-        'error',
-        'Connect your YouTube account before publishing.'
-      );
+      this.setStatus('error', 'Select a video, enter a title, and connect YouTube first.');
       return;
     }
 
     this.busy = true;
-    this.setStatus('info', 'Sending media to the publishing server…');
+    this.uploadProgress = 5;
+    this.setStatus('info', 'Uploading video to your YouTube channel…');
 
-    // Use the implemented YouTube upload endpoint when YouTube is selected.
-    if (this.publishYouTube && !this.publishInstagram) {
-      this.youtubeService.uploadVideo(
+    this.youtubeService
+      .uploadVideoWithProgress(
         this.selectedFile,
         this.youtubeTitle.trim(),
-        this.youtubeDescription,
+        this.youtubeDescription.trim(),
         this.youtubePrivacy
-      ).pipe(
-        finalize(() => {
-          this.busy = false;
-        })
-      ).subscribe({
-        next: (response) => {
-          if (response.success) {
+      )
+      .pipe(finalize(() => (this.busy = false)))
+      .subscribe({
+        next: (event) => {
+          if (event.type === HttpEventType.UploadProgress && event.total) {
+            this.uploadProgress = Math.min(92, Math.round((event.loaded / event.total) * 90));
+          } else if (event.type === HttpEventType.Response && event.body) {
+            this.uploadProgress = 100;
             this.setStatus(
               'success',
-              response.videoUrl
-                ? `YouTube upload successful: ${response.videoUrl}`
-                : response.message
+              event.body.videoUrl
+                ? `Uploaded to YouTube: ${event.body.videoUrl}`
+                : event.body.message
             );
-          } else {
-            this.setStatus(
-              'error',
-              response.message || 'YouTube upload was not confirmed.'
-            );
+            this.loadYouTubeHistory();
           }
         },
-        error: (error) => {
-          const message = error?.error?.message;
-
-          this.setStatus(
-            'error',
-            message
-              ? `YouTube upload failed: ${message}`
-              : 'YouTube upload failed. Check the backend terminal.'
-          );
-
+        error: (err) => {
+          this.uploadProgress = 0;
+          this.setStatus('error', err?.error?.message || 'YouTube upload failed.');
           this.checkYouTubeStatus();
-        }
+        },
       });
-
-      return;
-    }
-
-    // The combined Instagram/YouTube endpoint must be implemented separately.
-    const body = new FormData();
-
-    body.append('media', this.selectedFile, this.selectedFile.name);
-    body.append('caption', this.caption);
-    body.append('platforms', JSON.stringify({
-      instagram: this.publishInstagram,
-      youtube: this.publishYouTube
-    }));
-    body.append('youtubeTitle', this.youtubeTitle.trim());
-    body.append('youtubeDescription', this.youtubeDescription);
-    body.append('youtubePrivacy', this.youtubePrivacy);
-
-    this.http.post<any>(this.publishEndpoint, body).pipe(
-      finalize(() => {
-        this.busy = false;
-      })
-    ).subscribe({
-      next: (response) => {
-        const results = response?.results;
-
-        if (response?.success === true) {
-          this.setStatus(
-            'success',
-            response.message || 'The server confirmed the publishing request.'
-          );
-        } else if (results) {
-          const summary = Object.entries(results)
-            .map(([platform, result]: [string, any]) =>
-              `${platform}: ${
-                result?.success
-                  ? 'published'
-                  : (result?.message || 'failed')
-              }`
-            )
-            .join(' · ');
-
-          this.setStatus(
-            'info',
-            summary || 'The server did not confirm successful publication.'
-          );
-        } else {
-          this.setStatus(
-            'info',
-            response?.message ||
-              'Server response received. Verify the platform status.'
-          );
-        }
-      },
-      error: (error) => {
-        const serverMessage = error?.error?.message || error?.message;
-
-        if (error?.status === 404) {
-          this.setStatus(
-            'error',
-            'Publishing API endpoint not found. The combined publishing endpoint is not implemented yet.'
-          );
-        } else if (error?.status === 401 || error?.status === 403) {
-          this.setStatus(
-            'error',
-            'The server rejected this request. Check your login and platform authorization.'
-          );
-        } else {
-          this.setStatus(
-            'error',
-            serverMessage
-              ? `Publishing failed: ${serverMessage}`
-              : 'Publishing failed. Check that the backend is running and inspect its logs.'
-          );
-        }
-      }
-    });
   }
 
   clearMedia(): void {
@@ -360,19 +260,13 @@ export class PostsListComponent implements OnInit, OnDestroy {
     this.setStatus('idle', '');
   }
 
-  private setStatus(
-    status: 'idle' | 'success' | 'error' | 'info',
-    message: string
-  ): void {
+  private setStatus(status: 'idle' | 'success' | 'error' | 'info', message: string): void {
     this.status = status;
     this.statusMessage = message;
   }
 
   private clearPreview(): void {
-    if (this.objectUrl) {
-      URL.revokeObjectURL(this.objectUrl);
-    }
-
+    if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
     this.objectUrl = null;
     this.previewUrl = null;
   }

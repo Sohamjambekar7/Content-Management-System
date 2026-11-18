@@ -1,142 +1,95 @@
-import { Request, Response } from "express";
-import { z } from "zod";
-import { getPostById } from "../services/post.service";
-import { addComment, deleteComment, getCommentById, getPostComments, getCommentsForPostOwner, updateComment } from "../services/comment.service";
-import { User } from "../models/User";
-
+import { Request, Response } from 'express';
+import { z } from 'zod';
+import { getPostById } from '../services/post.service';
+import {
+  addComment,
+  deleteComment,
+  getCommentById,
+  getCommentsForPostOwner,
+  getPostComments,
+  updateComment,
+} from '../services/comment.service';
+import { parseWithSchema, requireAuthUser } from '../shared/http.util';
 
 export const getCommentsForOwnerController = async (req: Request, res: Response) => {
-    const user = (req as any).user as User;
-    return res.json(await getCommentsForPostOwner(user.get('id')));
+  const user = requireAuthUser(req);
+  return res.json(await getCommentsForPostOwner(user.get('id')));
 };
 
 export const getPostCommentsController = async (req: Request, res: Response) => {
-    const schema = z.object({
-        postId: z.number()
-    })
+  const safeData = parseWithSchema(
+    z.object({ postId: z.coerce.number().int().positive() }),
+    { postId: req.params.postId },
+    res
+  );
+  if (!safeData) return;
 
-    const safeData = schema.safeParse({
-        postId: parseInt(req.params.postId)
-    }); 
+  const post = await getPostById(safeData.postId);
+  if (!post) return res.status(404).json({ message: 'Post not found.' });
 
-    if(!safeData.success)
-        return res.status(400).json(safeData.error)
-
-    const { postId } = safeData.data;
-
-    const post = await getPostById(postId);
-
-    if(!post){
-        return res.status(400).json({message: "Invalid post id"});
-    }
-
-    const comments = await getPostComments(postId);
-
-    return res.json(comments);
-
-
-
-
-}
+  const comments = await getPostComments(safeData.postId);
+  return res.json(comments);
+};
 
 export const addCommentController = async (req: Request, res: Response) => {
-    const schema = z.object({
-        postId: z.number(),
-        content: z.string(),
-    })
+  const user = requireAuthUser(req);
+  const safeData = parseWithSchema(
+    z.object({
+      postId: z.coerce.number().int().positive(),
+      content: z.string().trim().min(1).max(2000),
+    }),
+    req.body,
+    res
+  );
+  if (!safeData) return;
 
-    const user: User = (req as any).user;
+  const post = await getPostById(safeData.postId);
+  if (!post) return res.status(404).json({ message: 'Post not found.' });
 
-
-    const safeData = schema.safeParse(req.body);
-    if(!safeData.success)
-        return res.status(400).json(safeData.error)
-
-    const { postId, content } = safeData.data;
-    const userId = user.get('id'); 
-
-    const post = await getPostById(postId);
-
-    if(!post){
-        return res.status(400).json({
-            message: "Invalid post id"
-        })
-    }
-
-    const comment = await addComment(postId, userId, content);
-
-    return res.json(comment);
-
-
-
-}
+  const comment = await addComment(safeData.postId, user.get('id'), safeData.content);
+  return res.status(201).json(comment);
+};
 
 export const updateCommentController = async (req: Request, res: Response) => {
-    const schema = z.object({
-        commentId: z.number(),
-        content: z.string()
-    });
+  const user = requireAuthUser(req);
+  const safeData = parseWithSchema(
+    z.object({
+      commentId: z.coerce.number().int().positive(),
+      content: z.string().trim().min(1).max(2000),
+    }),
+    req.body,
+    res
+  );
+  if (!safeData) return;
 
-    const user = (req as any).user as User
+  const comment = await getCommentById(safeData.commentId);
+  if (!comment) return res.status(404).json({ message: 'Comment not found.' });
+  if (comment.userId !== user.get('id')) {
+    return res.status(403).json({ message: 'You are not the owner of this comment.' });
+  }
 
-
-
-    const safeData = schema.safeParse(req.body);
-    if(!safeData.success)
-        return res.status(400).json(safeData.error)
-
-    const { commentId, content } = safeData.data;
-    const userId = user.get('id');
-
-    // check if commentId is valid
-    const comment = await getCommentById(commentId);
-
-    if(!comment){
-        return res.status(400).json({message: "Invalid comment id"});
-    }
-
-    // check if current user is the owner of the comment
-    if(comment.userId !== userId){
-        return res.status(400).json({message: "You are not the owner of the comment"});
-    }
-
-    // update the comment
-    const updatedComment = await updateComment(commentId, content);
-
-    return res.json(updatedComment)
-    
-}
+  const updatedComment = await updateComment(safeData.commentId, safeData.content);
+  return res.json(updatedComment);
+};
 
 export const deleteCommentController = async (req: Request, res: Response) => {
-    const schema = z.object({
-        commentId: z.number()
-    });
+  const user = requireAuthUser(req);
+  const safeData = parseWithSchema(
+    z.object({ commentId: z.coerce.number().int().positive() }),
+    req.body,
+    res
+  );
+  if (!safeData) return;
 
-    const user = (req as any).user as User
+  const userId = user.get('id');
+  const comment = await getCommentById(safeData.commentId);
+  if (!comment) return res.status(404).json({ message: 'Comment not found.' });
 
+  const post = await getPostById(comment.postId!);
+  if (comment.userId !== userId && post?.userId !== userId) {
+    return res.status(403).json({ message: 'You are not allowed to delete this comment.' });
+  }
 
-    const safeData = schema.safeParse(req.body);
-    if(!safeData.success)
-        return res.status(400).json(safeData.error);
-
-    const { commentId } = safeData.data;
-
-    const userId =  user.get('id');
-
-    // check if commentId is valid
-    const comment = await getCommentById(commentId);
-    if(!comment){
-        return res.status(400).json({message: "Invalid comment id"});
-    }
-
-    // Authors can remove their own comments; post owners can moderate comments on their content.
-    const post = await getPostById(comment.postId!);
-    if (comment.userId !== userId && post?.userId !== userId) {
-        return res.status(403).json({ message: 'You are not allowed to delete this comment.' });
-    }
-
-    // delete the comment
-    await deleteComment(commentId);
-
-    return res.json(comment);
-}
+  await deleteComment(safeData.commentId);
+  return res.json(comment);
+};

@@ -1,359 +1,186 @@
-
-<main class="publisher-page">
-  <header class="page-header">
+<main class="mx-auto max-w-6xl space-y-6 p-4 sm:p-6">
+  <header class="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
     <div>
-      <p class="eyebrow">CONTENT WORKSPACE</p>
-      <h1>Social Publisher</h1>
-      <p class="subtitle">
-        Prepare your edited media, tailor the details, and send it to your connected social accounts.
+      <p class="text-xs font-bold uppercase tracking-widest text-indigo-600">EASECONTENT WORKSPACE</p>
+      <h1 class="mt-1 text-2xl font-extrabold text-slate-900">Posts &amp; YouTube Publisher</h1>
+      <p class="mt-1 text-sm text-slate-500">
+        Manage published articles, edit photos and videos in the AI Creative Studio, or upload videos to YouTube under <strong>{{ sessionEmail }}</strong>.
       </p>
     </div>
-    <div class="header-mark" aria-hidden="true">↗</div>
+    <div class="flex flex-wrap gap-2">
+      <a routerLink="/editor" class="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-bold text-white no-underline shadow-sm transition hover:opacity-95">
+        <span>✦</span><span>AI Creative Studio</span>
+      </a>
+      <a routerLink="/admin/posts/add" class="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 no-underline transition hover:bg-slate-50">
+        <span>＋</span><span>New Article</span>
+      </a>
+    </div>
   </header>
 
-  <!-- Platform overview -->
-  <section class="platform-strip" aria-label="Supported platforms">
-    <div class="platform-item instagram">
-      <span class="platform-icon" aria-hidden="true">◎</span>
-      <span>
-        <strong>Instagram</strong>
-        <small>Photos, videos and Reels*</small>
-      </span>
-      <span class="platform-dot"></span>
-    </div>
-
-    <div class="platform-item youtube">
-      <span class="platform-icon" aria-hidden="true">▶</span>
-      <span>
-        <strong>YouTube</strong>
-        <small>Video upload</small>
-      </span>
-      <span
-        class="platform-dot"
-        [class.connected-dot]="youtubeConnected">
-      </span>
-    </div>
-
-    <p class="platform-note">
-      *Account eligibility and media requirements apply. Connect accounts through the backend before publishing.
-    </p>
-  </section>
-
-  <!-- YouTube account connection -->
-  <section class="panel youtube-connection-panel">
-    <div class="section-heading">
-      <div>
-        <span class="step">YT</span>
-        <h2>YouTube account</h2>
-      </div>
-
-      <span
-        class="connection-badge"
-        [class.connection-badge-connected]="youtubeConnected">
-        {{ checkingYouTube ? 'Checking…' : youtubeConnected ? 'Connected' : 'Not connected' }}
-      </span>
-    </div>
-
-    <p class="connection-description">
-      Connect your Google account to authorize video uploads to your YouTube channel.
-    </p>
-
-    <div class="connection-actions">
-      <button
-        type="button"
-        class="btn-primary"
-        *ngIf="!youtubeConnected"
-        [disabled]="checkingYouTube"
-        (click)="connectYouTube()">
-        Connect YouTube
-      </button>
-
-      <button
-        type="button"
-        class="btn-secondary"
-        [disabled]="checkingYouTube"
-        (click)="checkYouTubeStatus()">
-        {{ checkingYouTube ? 'Checking…' : 'Check connection' }}
-      </button>
-    </div>
-
-    <p class="connection-help" *ngIf="youtubeConnected">
-      Your backend reports that YouTube is connected. You can select a video and prepare an upload.
-    </p>
-
-    <p class="connection-help" *ngIf="!youtubeConnected && !checkingYouTube">
-      YouTube must be connected before uploading. If you reconnect, Google may ask you to authorize access.
-    </p>
-  </section>
-
-  <!-- Media workspace -->
-  <div class="workspace">
-    <section class="panel media-panel">
-      <div class="section-heading">
-        <div>
-          <span class="step">01</span>
-          <h2>Your media</h2>
-        </div>
-        <span class="muted">Edited file</span>
-      </div>
-
-      <label
-        class="upload-zone"
-        for="mediaFile"
-        *ngIf="!previewUrl">
-        <span class="upload-icon" aria-hidden="true">↑</span>
-        <strong>Drop your photo or video here</strong>
-        <span>or <u>browse files</u> from your computer</span>
-        <small>Images and videos · Use your exported/edited file</small>
-      </label>
-
-      <input
-        id="mediaFile"
-        class="file-input"
-        type="file"
-        accept="image/*,video/*"
-        (change)="onFileSelected($event)">
-
-      <div class="preview-wrap" *ngIf="previewUrl">
-        <img
-          *ngIf="isImage"
-          [src]="previewUrl"
-          alt="Selected media preview">
-
-        <video
-          *ngIf="isVideo"
-          [src]="previewUrl"
-          controls
-          playsinline>
-        </video>
-
-        <button
-          type="button"
-          class="remove-media"
-          (click)="clearMedia()"
-          aria-label="Remove selected media">
-          ×
-        </button>
-      </div>
-
-      <div class="file-summary" *ngIf="selectedFile">
-        <span class="file-symbol">{{ isVideo ? '▶' : '▧' }}</span>
-
-        <div class="file-details">
-          <strong>{{ selectedFile.name }}</strong>
-          <small>
-            {{ (selectedFile.size / 1024 / 1024) | number:'1.1-1' }} MB
-            · {{ isVideo ? 'Video' : 'Image' }}
-          </small>
-        </div>
-
-        <span class="ready-pill">Ready</span>
-      </div>
-
-      <div class="helper-card">
-        <span aria-hidden="true">✦</span>
-        <div>
-          <strong>Created in your editor?</strong>
-          <p>
-            Export the final image or video from your editing studio, then select that file here.
-            This page previews and uploads the exported file; it does not edit the media itself.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Post details -->
-    <section class="panel details-panel">
-      <div class="section-heading">
-        <div>
-          <span class="step">02</span>
-          <h2>Post details</h2>
-        </div>
-        <span class="muted">Customize your post</span>
-      </div>
-
-      <label class="field-label" for="caption">
-        Caption <span>Instagram</span>
-      </label>
-
-      <textarea
-        id="caption"
-        [(ngModel)]="caption"
-        name="caption"
-        rows="5"
-        maxlength="2200"
-        placeholder="Write a caption that tells your story…">
-      </textarea>
-
-      <div class="field-foot">
-        <span>Make it yours with a clear message and hashtags.</span>
-        <span>{{ caption.length }}/2200</span>
-      </div>
-
-      <div class="divider"></div>
-
-      <label class="field-label" for="ytTitle">
-        YouTube title <span>Required for YouTube</span>
-      </label>
-
-      <input
-        id="ytTitle"
-        type="text"
-        [(ngModel)]="youtubeTitle"
-        name="youtubeTitle"
-        maxlength="100"
-        placeholder="Give your video a clear title">
-
-      <div class="field-foot">
-        <span>Up to 100 characters</span>
-        <span>{{ youtubeTitle.length }}/100</span>
-      </div>
-
-      <label class="field-label description-label" for="ytDescription">
-        YouTube description
-      </label>
-
-      <textarea
-        id="ytDescription"
-        [(ngModel)]="youtubeDescription"
-        name="youtubeDescription"
-        rows="3"
-        maxlength="5000"
-        placeholder="Add context, links or credits…">
-      </textarea>
-
-      <label class="field-label" for="privacy">
-        YouTube visibility
-      </label>
-
-      <select
-        id="privacy"
-        [(ngModel)]="youtubePrivacy"
-        name="youtubePrivacy">
-        <option value="private">Private — only you</option>
-        <option value="unlisted">Unlisted — anyone with the link</option>
-        <option value="public">Public — everyone</option>
-      </select>
-    </section>
+  <!-- Section Switcher -->
+  <div class="flex gap-2">
+    <button
+      type="button"
+      (click)="activeSection = 'posts'"
+      [class.bg-indigo-600]="activeSection === 'posts'"
+      [class.text-white]="activeSection === 'posts'"
+      [class.bg-white]="activeSection !== 'posts'"
+      [class.text-slate-600]="activeSection !== 'posts'"
+      class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold shadow-sm transition">
+      Articles ({{ posts.length }})
+    </button>
+    <button
+      type="button"
+      (click)="activeSection = 'publisher'"
+      [class.bg-indigo-600]="activeSection === 'publisher'"
+      [class.text-white]="activeSection === 'publisher'"
+      [class.bg-white]="activeSection !== 'publisher'"
+      [class.text-slate-600]="activeSection !== 'publisher'"
+      class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold shadow-sm transition">
+      Direct YouTube Upload ({{ youtubeHistory.length }})
+    </button>
   </div>
 
-  <!-- Destination selection -->
-  <section class="panel destination-panel">
-    <div class="section-heading">
-      <div>
-        <span class="step">03</span>
-        <h2>Choose destinations</h2>
+  <!-- Articles Management Tab -->
+  <section *ngIf="activeSection === 'posts'" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-slate-900">Your EASEContent Articles</h2>
+      <span class="text-xs text-slate-400">{{ posts.length }} item(s)</span>
+    </div>
+
+    <div *ngIf="loadingPosts" class="py-10 text-center text-sm text-slate-500">Loading posts…</div>
+
+    <div *ngIf="!loadingPosts && posts.length === 0" class="rounded-xl border border-dashed border-slate-300 p-10 text-center">
+      <p class="text-sm font-semibold text-slate-700">No articles published yet.</p>
+      <p class="mt-1 text-xs text-slate-500">Create your first post or jump into the AI Creative Studio to edit media.</p>
+      <div class="mt-4 flex justify-center gap-2">
+        <a routerLink="/admin/posts/add" class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white no-underline hover:bg-indigo-700">Write Article</a>
+        <a routerLink="/editor" class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700 no-underline hover:bg-slate-50">Open Studio</a>
       </div>
-      <span class="muted">Select one or both</span>
     </div>
 
-    <div class="destination-grid">
-      <label
-        class="destination-card instagram-card"
-        [class.destination-selected]="publishInstagram">
-        <input
-          type="checkbox"
-          [(ngModel)]="publishInstagram"
-          name="publishInstagram">
-
-        <span class="dest-icon insta-icon">◎</span>
-
-        <span class="dest-copy">
-          <strong>Instagram</strong>
-          <small>Publish to a professional account</small>
-          <em>Requires Meta OAuth and a Business/Creator account.</em>
-        </span>
-
-        <span class="checkmark" aria-hidden="true">
-          {{ publishInstagram ? '✓' : '+' }}
-        </span>
-      </label>
-
-      <label
-        class="destination-card youtube-card"
-        [class.destination-selected]="publishYouTube">
-        <input
-          type="checkbox"
-          [(ngModel)]="publishYouTube"
-          name="publishYouTube">
-
-        <span class="dest-icon yt-icon">▶</span>
-
-        <span class="dest-copy">
-          <strong>YouTube</strong>
-          <small>Upload a video to your channel</small>
-          <em>Requires Google OAuth and YouTube Data API access.</em>
-        </span>
-
-        <span class="checkmark" aria-hidden="true">
-          {{ publishYouTube ? '✓' : '+' }}
-        </span>
-      </label>
+    <div *ngIf="!loadingPosts && posts.length > 0" class="overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead class="border-b border-slate-200 text-xs uppercase text-slate-400">
+          <tr>
+            <th class="py-2.5 pr-4">Title</th>
+            <th class="py-2.5 pr-4">Category</th>
+            <th class="py-2.5 pr-4">Created</th>
+            <th class="py-2.5 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          <tr *ngFor="let post of posts">
+            <td class="py-3 pr-4 font-semibold text-slate-900">{{ post.title }}</td>
+            <td class="py-3 pr-4 text-slate-600">{{ post.category.name || 'Uncategorized' }}</td>
+            <td class="py-3 pr-4 text-xs text-slate-500">{{ post.createdAt | date:'mediumDate' }}</td>
+            <td class="py-3 text-right space-x-2">
+              <a [routerLink]="['/post', post.slug]" class="text-xs font-semibold text-slate-600 hover:text-indigo-600">View</a>
+              <a [routerLink]="['/admin/posts/edit', post.slug]" class="text-xs font-semibold text-indigo-600 hover:underline">Edit</a>
+              <button type="button" (click)="deletePost(post.id)" class="text-xs font-semibold text-red-600 hover:underline">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-
-    <p
-      class="validation-note"
-      *ngIf="publishYouTube && selectedFile && !isVideo">
-      YouTube accepts video uploads only. Select a video or turn off YouTube.
-    </p>
-
-    <p
-      class="validation-note"
-      *ngIf="publishYouTube && !youtubeConnected">
-      Connect your YouTube account before publishing a video.
-    </p>
-
-    <p
-      class="validation-note"
-      *ngIf="publishInstagram && publishYouTube">
-      Combined Instagram and YouTube publishing requires a backend endpoint that supports both platforms.
-    </p>
   </section>
 
-  <!-- Status and actions -->
-  <section class="publish-footer">
-    <div
-      class="status-area"
-      *ngIf="statusMessage"
-      [ngClass]="'status-' + status"
-      role="status"
-      aria-live="polite">
-      <span class="status-symbol">
-        {{ status === 'success' ? '✓' : status === 'error' ? '!' : 'i' }}
-      </span>
-      <span>{{ statusMessage }}</span>
-    </div>
-
-    <div class="footer-actions">
-      <button
-        type="button"
-        class="btn-secondary"
-        (click)="loadDraft()">
-        Load draft
-      </button>
-
-      <button
-        type="button"
-        class="btn-secondary"
-        (click)="saveDraft()">
-        Save draft
-      </button>
-
-      <button
-        type="button"
-        class="btn-primary"
-        [disabled]="!canSubmit || (publishYouTube && !isVideo)"
-        (click)="publish()">
-        <span *ngIf="!busy">
-          Publish post <span aria-hidden="true">↗</span>
+  <!-- Direct YouTube Upload Tab -->
+  <section *ngIf="activeSection === 'publisher'" class="space-y-5">
+    <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">YouTube Account (Email-Verified)</h2>
+          <p class="text-xs text-slate-500">
+            Session email: <strong>{{ sessionEmail }}</strong>
+            <span *ngIf="youtubeStatus?.channelTitle"> · Channel: <strong>{{ youtubeStatus?.channelTitle }}</strong></span>
+          </p>
+        </div>
+        <span
+          class="rounded-full px-3 py-1 text-xs font-bold"
+          [ngClass]="youtubeConnected ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'">
+          {{ checkingYouTube ? 'Checking…' : youtubeConnected ? 'Connected' : 'Authorization Required' }}
         </span>
-        <span *ngIf="busy" class="button-loading">Sending…</span>
-      </button>
+      </div>
+
+      <p *ngIf="!youtubeConnected && youtubeStatus?.reason" class="text-xs text-red-600">{{ youtubeStatus?.reason }}</p>
+
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          (click)="connectYouTube()"
+          [disabled]="connectingYouTube || checkingYouTube"
+          class="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-50">
+          {{ connectingYouTube ? 'Redirecting…' : youtubeConnected ? 'Re-authorize YouTube' : 'Connect YouTube (' + sessionEmail + ')' }}
+        </button>
+        <button
+          type="button"
+          (click)="checkYouTubeStatus()"
+          [disabled]="checkingYouTube"
+          class="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+          Refresh Status
+        </button>
+        <button
+          *ngIf="youtubeConnected"
+          type="button"
+          (click)="disconnectYouTube()"
+          class="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50">
+          Disconnect
+        </button>
+      </div>
     </div>
 
-    <p class="fine-print">
-      Publishing is confirmed only when the server responds successfully.
-      Your platform accounts must be connected and authorized on the backend.
-    </p>
+    <div class="grid gap-5 lg:grid-cols-2">
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <h3 class="text-base font-bold text-slate-900">1. Select Video</h3>
+        <input id="mediaFile" type="file" accept="video/*" (change)="onFileSelected($event)" class="block w-full text-xs text-slate-600" />
+        <video *ngIf="previewUrl" [src]="previewUrl" controls playsinline class="max-h-64 w-full rounded-xl bg-black"></video>
+        <p class="text-xs text-slate-500">
+          Need to trim, add subtitles, adjust framing, or run AI helpers first?
+          <a routerLink="/editor" class="font-semibold text-indigo-600 hover:underline">Open AI Creative Studio →</a>
+        </p>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-4">
+        <h3 class="text-base font-bold text-slate-900">2. YouTube Metadata</h3>
+        <div>
+          <label for="ytTitle" class="block text-xs font-bold text-slate-700 mb-1">Video Title ({{ youtubeTitle.length }}/100) *</label>
+          <input id="ytTitle" type="text" [(ngModel)]="youtubeTitle" maxlength="100" placeholder="Enter video title" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label for="ytDesc" class="block text-xs font-bold text-slate-700 mb-1">Caption / Description ({{ youtubeDescription.length }}/5000)</label>
+          <textarea id="ytDesc" rows="4" [(ngModel)]="youtubeDescription" maxlength="5000" placeholder="Write multi-line caption and #hashtags…" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"></textarea>
+        </div>
+        <div>
+          <label for="ytPrivacy" class="block text-xs font-bold text-slate-700 mb-1">Visibility</label>
+          <select id="ytPrivacy" [(ngModel)]="youtubePrivacy" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+            <option value="private">Private</option>
+            <option value="unlisted">Unlisted</option>
+            <option value="public">Public</option>
+          </select>
+        </div>
+
+        <div *ngIf="busy" class="space-y-1">
+          <div class="flex justify-between text-xs text-slate-600"><span>Uploading…</span><span>{{ uploadProgress }}%</span></div>
+          <div class="h-2 rounded-full bg-slate-200 overflow-hidden"><div class="h-full bg-red-600" [style.width.%]="uploadProgress"></div></div>
+        </div>
+
+        <div *ngIf="statusMessage" class="rounded-xl border px-3 py-2 text-xs"
+          [ngClass]="{
+            'border-emerald-200 bg-emerald-50 text-emerald-700': status === 'success',
+            'border-red-200 bg-red-50 text-red-700': status === 'error',
+            'border-indigo-200 bg-indigo-50 text-indigo-700': status === 'info'
+          }">
+          {{ statusMessage }}
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <button type="button" (click)="saveDraft()" class="rounded-xl border border-slate-300 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Save Draft</button>
+          <button type="button" (click)="publish()" [disabled]="!canSubmit" class="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 disabled:opacity-40">
+            {{ busy ? 'Uploading…' : 'Upload to YouTube' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </section>
 </main>

@@ -1,64 +1,132 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { EditorProject } from '../models/EditorProject';
 import { ExportHistory } from '../models/ExportHistory';
+import { AppError, parseWithSchema, requireAuthUser } from '../shared/http.util';
 
-type AuthRequest = Request & { user?: { id: number } };
-function userId(req: AuthRequest): number { return Number(req.user?.id); }
-function validMetadata(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
-}
+const createProjectSchema = z.object({
+  name: z.string().trim().min(1, 'Project name is required.').max(160),
+  mediaType: z.enum(['photo', 'video']),
+  metadata: z.record(z.unknown()).optional().default({}),
+});
+
+const updateProjectSchema = z.object({
+  name: z.string().trim().min(1).max(160).optional(),
+  mediaType: z.enum(['photo', 'video']).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+const createExportSchema = z.object({
+  format: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9.+/-]{1,24}$/i, 'A valid export format is required.'),
+  width: z.coerce.number().int().positive().optional(),
+  height: z.coerce.number().int().positive().optional(),
+  durationSeconds: z.coerce.number().min(0).optional(),
+  platform: z.string().trim().max(40).optional(),
+  projectId: z.coerce.number().int().positive().nullable().optional(),
+  metadata: z.record(z.unknown()).optional().default({}),
+});
 
 export async function listProjects(req: Request, res: Response): Promise<void> {
-  const uid = userId(req as AuthRequest);
-  const projects = await EditorProject.findAll({ where: { userId: uid }, order: [['updatedAt', 'DESC']], limit: 100 });
+  const user = requireAuthUser(req);
+  const projects = await EditorProject.findAll({
+    where: { userId: user.id! },
+    order: [['updatedAt', 'DESC']],
+    limit: 100,
+  });
   res.json(projects);
 }
+
 export async function createProject(req: Request, res: Response): Promise<void> {
-  const uid = userId(req as AuthRequest);
-  const { name, mediaType } = req.body ?? {};
-  if (typeof name !== 'string' || !name.trim() || name.trim().length > 160 || !['photo', 'video'].includes(mediaType)) {
-    res.status(400).json({ message: 'Provide a project name (max 160 characters) and mediaType photo or video.' }); return;
-  }
-  const project = await EditorProject.create({ userId: uid, name: name.trim(), mediaType, metadata: validMetadata(req.body.metadata) } as EditorProject);
+  const user = requireAuthUser(req);
+  const parsed = parseWithSchema(createProjectSchema, req.body, res);
+  if (!parsed) return;
+
+  const project = await EditorProject.create({
+    userId: user.id!,
+    name: parsed.name,
+    mediaType: parsed.mediaType,
+    metadata: parsed.metadata,
+  } as EditorProject);
   res.status(201).json(project);
 }
+
 export async function updateProject(req: Request, res: Response): Promise<void> {
-  const uid = userId(req as AuthRequest);
-  const project = await EditorProject.findOne({ where: { id: Number(req.params.id), userId: uid } });
-  if (!project) { res.status(404).json({ message: 'Project not found.' }); return; }
-  if (req.body.name !== undefined) {
-    if (typeof req.body.name !== 'string' || !req.body.name.trim() || req.body.name.trim().length > 160) { res.status(400).json({ message: 'Invalid project name.' }); return; }
-    project.name = req.body.name.trim();
+  const user = requireAuthUser(req);
+  const projectId = Number(req.params.id);
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    throw new AppError(400, 'Invalid project id.', 'INVALID_ID');
   }
-  if (req.body.mediaType !== undefined) {
-    if (!['photo', 'video'].includes(req.body.mediaType)) { res.status(400).json({ message: 'Invalid mediaType.' }); return; }
-    project.mediaType = req.body.mediaType;
+
+  const parsed = parseWithSchema(updateProjectSchema, req.body, res);
+  if (!parsed) return;
+
+  const project = await EditorProject.findOne({ where: { id: projectId, userId: user.id! } });
+  if (!project) {
+    throw new AppError(404, 'Project not found.', 'PROJECT_NOT_FOUND');
   }
-  if (req.body.metadata !== undefined) project.metadata = validMetadata(req.body.metadata);
-  await project.save(); res.json(project);
+
+  if (parsed.name !== undefined) project.name = parsed.name;
+  if (parsed.mediaType !== undefined) project.mediaType = parsed.mediaType;
+  if (parsed.metadata !== undefined) project.metadata = parsed.metadata;
+
+  await project.save();
+  res.json(project);
 }
+
+export async function deleteProject(req: Request, res: Response): Promise<void> {
+  const user = requireAuthUser(req);
+  const projectId = Number(req.params.id);
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    throw new AppError(400, 'Invalid project id.', 'INVALID_ID');
+  }
+
+  const project = await EditorProject.findOne({ where: { id: projectId, userId: user.id! } });
+  if (!project) {
+    throw new AppError(404, 'Project not found.', 'PROJECT_NOT_FOUND');
+  }
+
+  await project.destroy();
+  res.json({ success: true, message: 'Project deleted.' });
+}
+
 export async function createExport(req: Request, res: Response): Promise<void> {
-  const uid = userId(req as AuthRequest);
-  const { format, width, height, durationSeconds, platform, projectId } = req.body ?? {};
-  if (typeof format !== 'string' || !/^[a-z0-9.+/-]{1,24}$/i.test(format)) { res.status(400).json({ message: 'A valid export format is required.' }); return; }
+  const user = requireAuthUser(req);
+  const parsed = parseWithSchema(createExportSchema, req.body, res);
+  if (!parsed) return;
+
   let validProjectId: number | null = null;
-  if (projectId !== undefined && projectId !== null) {
-    const project = await EditorProject.findOne({ where: { id: Number(projectId), userId: uid } });
-    if (!project) { res.status(400).json({ message: 'Project does not belong to this user.' }); return; }
+  if (parsed.projectId) {
+    const project = await EditorProject.findOne({
+      where: { id: parsed.projectId, userId: user.id! },
+    });
+    if (!project) {
+      throw new AppError(400, 'Project does not belong to this user.', 'INVALID_PROJECT');
+    }
     validProjectId = project.id;
   }
+
   const record = await ExportHistory.create({
-    userId: uid, projectId: validProjectId, format,
-    width: Number.isInteger(width) && width > 0 ? width : null,
-    height: Number.isInteger(height) && height > 0 ? height : null,
-    durationSeconds: typeof durationSeconds === 'number' && durationSeconds >= 0 ? durationSeconds : null,
-    platform: typeof platform === 'string' ? platform.slice(0,40) : null,
-    metadata: validMetadata(req.body.metadata)
+    userId: user.id!,
+    projectId: validProjectId,
+    format: parsed.format,
+    width: parsed.width,
+    height: parsed.height,
+    durationSeconds: parsed.durationSeconds,
+    platform: parsed.platform,
+    metadata: parsed.metadata,
   } as ExportHistory);
   res.status(201).json(record);
 }
+
 export async function listExports(req: Request, res: Response): Promise<void> {
-  const records = await ExportHistory.findAll({ where: { userId: userId(req as AuthRequest) }, order: [['createdAt', 'DESC']], limit: 100 });
+  const user = requireAuthUser(req);
+  const records = await ExportHistory.findAll({
+    where: { userId: user.id! },
+    order: [['createdAt', 'DESC']],
+    limit: 100,
+  });
   res.json(records);
 }

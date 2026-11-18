@@ -1,36 +1,31 @@
-# Stage 1: Build the Angular application
-FROM node:20 as build
+# syntax=docker/dockerfile:1.7
 
-# Set the working directory
+# ---- Stage 1: Build Angular application ----
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install dependencies
+COPY package.json package-lock.json ./
 RUN npm ci
 
-# Copy the rest of the application code
 COPY . .
 
-# Set the production API URL at build time, e.g. --build-arg BACKEND_API_URL=https://api.example.com
-ARG BACKEND_API_URL=https://YOUR_API_DOMAIN
-RUN sed -i "s|https://YOUR_API_DOMAIN|${BACKEND_API_URL}|g" src/environments/environment.ts
+# Empty default uses same-origin Nginx /api proxy; pass full HTTPS URL if hosting API on another domain.
+ARG BACKEND_API_URL=""
+RUN node -e "const fs=require('fs');const url=process.argv[1]||'';fs.writeFileSync('src/environments/environment.ts','export const environment = { production: true, BACKEND_API_URL: '+JSON.stringify(url)+' };\n');" "${BACKEND_API_URL}"
 
-# Build the Angular app
-RUN npm run build -- --configuration production
+RUN npm run build
 
-# Stage 2: Serve the application using Nginx
-FROM nginx:alpine
+# ---- Stage 2: Serve static assets with Nginx ----
+FROM nginx:1.27-alpine AS runtime
 
-# Copy the built Angular app to Nginx's serve directory
-COPY --from=build /app/dist/frontend/browser /usr/share/nginx/html
+RUN apk add --no-cache curl
 
-# Copy a custom Nginx configuration (if needed)
-# COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist/frontend/browser /usr/share/nginx/html
 
-# Expose port 80
 EXPOSE 80
 
-# Start Nginx
+HEALTHCHECK --interval=20s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -fsS http://127.0.0.1/ || exit 1
+
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,78 @@
+-- EASEContent async media processing jobs, YouTube OAuth accounts (email-bound), and publish history (MySQL 8+).
+-- Run after the base Users and editor_projects tables exist. Back up production before applying.
+
+CREATE TABLE IF NOT EXISTS media_jobs (
+  id VARCHAR(64) NOT NULL,
+  user_id INT NOT NULL,
+  project_id INT NULL,
+  media_type ENUM('photo','video') NOT NULL,
+  job_type VARCHAR(48) NOT NULL,
+  status ENUM('queued','processing','completed','failed','cancelled') NOT NULL DEFAULT 'queued',
+  progress INT NOT NULL DEFAULT 0,
+  stage VARCHAR(160) NOT NULL DEFAULT 'Queued for processing',
+  original_file_name VARCHAR(255) NULL,
+  input_path VARCHAR(512) NULL,
+  output_path VARCHAR(512) NULL,
+  output_mime_type VARCHAR(120) NULL,
+  width INT NULL,
+  height INT NULL,
+  duration_seconds DECIMAL(10,3) NULL,
+  file_size_bytes BIGINT NULL,
+  options JSON NOT NULL,
+  result_metadata JSON NOT NULL,
+  error_message TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_media_jobs_user_created (user_id, created_at),
+  KEY idx_media_jobs_status (status),
+  CONSTRAINT fk_media_jobs_user FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_media_jobs_project FOREIGN KEY (project_id) REFERENCES editor_projects(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS youtube_accounts (
+  id INT NOT NULL AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  user_email VARCHAR(255) NOT NULL,
+  google_email VARCHAR(255) NULL,
+  channel_id VARCHAR(128) NULL,
+  channel_title VARCHAR(255) NULL,
+  access_token_enc TEXT NULL,
+  refresh_token_enc TEXT NULL,
+  scope TEXT NULL,
+  token_type VARCHAR(64) NULL,
+  expiry_date BIGINT NULL,
+  status ENUM('connected','mismatch','expired','revoked') NOT NULL DEFAULT 'connected',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_youtube_accounts_user (user_id),
+  KEY idx_youtube_accounts_email (user_email),
+  CONSTRAINT fk_youtube_accounts_user FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS youtube_publish_records (
+  id INT NOT NULL AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  user_email VARCHAR(255) NOT NULL,
+  project_id INT NULL,
+  media_job_id VARCHAR(64) NULL,
+  video_id VARCHAR(64) NULL,
+  video_url VARCHAR(512) NULL,
+  title VARCHAR(120) NOT NULL,
+  description TEXT NOT NULL,
+  privacy_status ENUM('private','unlisted','public') NOT NULL DEFAULT 'private',
+  channel_id VARCHAR(128) NULL,
+  channel_title VARCHAR(255) NULL,
+  status ENUM('uploading','published','failed') NOT NULL DEFAULT 'published',
+  error_message TEXT NULL,
+  metadata JSON NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_yt_publish_user_created (user_id, created_at),
+  KEY idx_yt_publish_video (video_id),
+  CONSTRAINT fk_yt_publish_user FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_yt_publish_project FOREIGN KEY (project_id) REFERENCES editor_projects(id) ON DELETE SET NULL,
+  CONSTRAINT fk_yt_publish_media_job FOREIGN KEY (media_job_id) REFERENCES media_jobs(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
