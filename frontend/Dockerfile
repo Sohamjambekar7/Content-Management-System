@@ -8,7 +8,7 @@ ENV npm_config_onnxruntime_node_install_cuda=skip \
     ONNXRUNTIME_NODE_INSTALL_CUDA=skip
 
 COPY package.json package-lock.json .npmrc ./
-RUN npm ci
+RUN npm ci --onnxruntime-node-install-cuda=skip
 
 COPY . .
 

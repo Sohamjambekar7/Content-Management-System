@@ -69,7 +69,7 @@ jobs:
         env:
           npm_config_onnxruntime_node_install_cuda: "skip"
           ONNXRUNTIME_NODE_INSTALL_CUDA: "skip"
-        run: npm ci
+        run: npm ci --onnxruntime-node-install-cuda=skip
 
       - name: Typecheck Angular project
         run: npx tsc --noEmit -p tsconfig.app.json
